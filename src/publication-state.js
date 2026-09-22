@@ -21,6 +21,7 @@ export async function publicationFingerprint(value,owner){
    if(card.file.path)delete card.file.src;
   }
  }
+ if(page.profile.seo.image?.startsWith('data:image/'))page.profile.seo.imagePath=owner+'/'+await hash(page.profile.seo.image)+'.webp';if(page.profile.seo.imagePath)delete page.profile.seo.image;
  const sorted=value=>Array.isArray(value)?value.map(sorted):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,sorted(value[key])])):value;
  return JSON.stringify(sorted(page));
 }

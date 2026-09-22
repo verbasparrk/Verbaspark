@@ -1,5 +1,19 @@
 import {test,expect} from '@playwright/test';
 import fs from 'node:fs/promises';
+test('public visitor switches language, sends an enquiry and generates only public activity',async({page})=>{
+ const server=await mockCloud(page);server.publish({name:'Alice',profile:{contactForm:true,analytics:true,defaultLanguage:'en',languages:['sl'],names:{sl:'Alica'},vcard:{enabled:true,name:'Alice'}},cards:[{id:'intro',type:'intro',title:'Hello',body:'My page',url:'https://example.com',translations:{sl:{title:'Pozdrav'}}}]});
+ const events=[],messages=[];await page.route('**/api/event',route=>{events.push(route.request().postDataJSON());return route.fulfill({json:{ok:true}})});await page.route('**/api/contact',route=>{messages.push(route.request().postDataJSON());return route.fulfill({json:{ok:true}})});
+ await page.goto('/p/alice');await expect(page.locator('.intro h2')).toHaveText('Hello');await expect.poll(()=>events.length).toBe(1);
+ await page.locator('[data-profile-language]').selectOption('sl');await expect(page.locator('.intro h2')).toHaveText('Pozdrav');expect(events.length).toBe(1);await expect(page).toHaveURL(/lang=sl/);
+ const form=page.locator('[data-contact-form]');await form.locator('[name="name"]').fill('Guest');await form.locator('[name="email"]').fill('guest@example.com');await form.locator('[name="message"]').fill('Please contact me');await form.locator('button').click();await expect(form.locator('[role=status]')).toContainText('poslano');expect(messages[0].slug).toBe('alice');expect(messages[0].message).toBe('Please contact me');
+ await page.locator('.intro a').evaluate(el=>el.addEventListener('click',event=>event.preventDefault()));await page.locator('.intro a').click();await expect.poll(()=>events.filter(e=>e.event==='click').length).toBe(1);expect(events.at(-1).card).toBe('intro');
+ await page.reload();await expect(page.locator('.intro h2')).toHaveText('Pozdrav');
+});
+test('owner can read private inbox and aggregate link performance',async({page})=>{
+ const server=await mockCloud(page);server.publish({name:'Alice',profile:{analytics:true},cards:[{id:'intro',type:'intro',title:'My website',url:'https://example.com'}]});await page.goto('/');await expect(page.locator('#save-status')).toContainText('Saved online');
+ await page.locator('#page-menu-toggle').click();await page.locator('#inbox').click();await expect(page.locator('.inbox-message')).toContainText('A private enquiry');await expect(page.locator('.inbox-message a')).toHaveAttribute('href','mailto:visitor%40example.com');await page.locator('.profile-tool .account-close').click();
+ await page.locator('#page-menu-toggle').click();await page.locator('#analytics').click();await expect(page.locator('.analytics-totals')).toHaveText('3 visits · 2 clicks');await expect(page.locator('.profile-tool table').first()).toContainText('My website');await page.setViewportSize({width:390,height:844});expect(await page.locator('.profile-tool').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+});
 test('dashboard tracks publication, sharing and unpublished edits on desktop and mobile',async({page})=>{
  const server=await mockCloud(page);await page.goto('/');await expect(page.locator('#save-status')).toContainText('Saved online');
  const open=async()=>{await page.locator('#page-menu-toggle').click();await page.locator('#dashboard').click()};
@@ -22,12 +36,14 @@ async function mockCloud(page){let draft=null,published=null,fail=false,saves=0;
   if(path.startsWith('/storage/v1/object/page-files/')&&route.request().method()==='POST'){files.add(path.split('/page-files/')[1]);return reply({Key:path})}
   if(path.startsWith('/storage/v1/object/sign/page-files/')&&route.request().method()==='POST')return reply({signedURL:path.replace('/storage/v1','')+'?token=mock'});
   if(path.startsWith('/storage/v1/object/sign/page-files/'))return route.fulfill({contentType:'application/pdf',body:'%PDF-1.4\nMock attachment\n%%EOF'});
+  if(path==='/rest/v1/contact_messages')return reply([{id:'message1',name:'Visitor',email:'visitor@example.com',message:'A private enquiry',created_at:new Date().toISOString()}]);
+  if(path==='/rest/v1/profile_metrics')return reply([{day:new Date().toISOString().slice(0,10),event:'view',card:'',total:3},{day:new Date().toISOString().slice(0,10),event:'click',card:'intro',total:2}]);
   if(path==='/rest/v1/drafts')return reply(draft?[draft]:[]);
   if(path==='/rest/v1/published_pages'){if(route.request().method()==='DELETE')published=null;return reply(published?[published]:[]);}
   if(path==='/rest/v1/rpc/save_draft'){if(fail)return route.abort('failed');const body=route.request().postDataJSON();if(draft&&body.expected_revision!==draft.revision)return route.fulfill({status:409,contentType:'application/json',body:JSON.stringify({code:'VS409',message:'DRAFT_CONFLICT'})});draft={document:body.draft_document,revision:(draft?.revision||0)+1,last_save_id:body.request_id};saves++;return reply(draft.revision)}
   if(path==='/rest/v1/rpc/publish_page'){const body=route.request().postDataJSON();published={slug:body.requested_slug,document:structuredClone(draft.document)};return reply(published.slug)}
   return route.fulfill({status:404,body:'Unknown mock endpoint '+path});
- });return {files,get draft(){return draft},get published(){return published},get saves(){return saves},fail:value=>{fail=value},overwrite:document=>{draft={document,revision:draft.revision+1,last_save_id:'remote'}}};
+ });return {publish:document=>{published={slug:'alice',document}},files,get draft(){return draft},get published(){return published},get saves(){return saves},fail:value=>{fail=value},overwrite:document=>{draft={document,revision:draft.revision+1,last_save_id:'remote'}}};
 }
 test('real client autosaves, retries offline edits and keeps publication separate',async({page})=>{
  const server=await mockCloud(page);await page.goto('/');await expect(page.locator('#save-status')).toContainText('Saved online');

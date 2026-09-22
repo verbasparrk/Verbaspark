@@ -1,12 +1,14 @@
 # Connect accounts and publishing
 
-The editor works locally without configuration. Online features require a Supabase project and web hosting; none has been provisioned by this repository.
+For contact forms, analytics and social previews, see [Profile services setup](PROFILE_SERVICES_SETUP.md). Existing projects run only [PROFILE_SERVICES_SETUP.sql](supabase/PROFILE_SERVICES_SETUP.sql), which adds migrations 006–007. These features require server functions; uploading only the static `dist` folder is insufficient.
 
-1. Create a Supabase project. Run the SQL files in `supabase/migrations` in order: `001_accounts.sql`, `002_gallery_images and attachments.sql`, `003_autosave.sql`, `004_page_files.sql`. Existing projects run only migrations not yet applied. Migration 003 is required for this version: it adds conflict-safe saving and updates the publish function.
+The editor works locally without configuration. Online features require a Supabase project and web hosting. Basic profiles support static hosting; contact forms, analytics and share metadata also require the server functions described above.
+
+1. For a new Supabase project, run `supabase/INITIAL_SETUP.sql` (migrations 001–005), followed by `supabase/PROFILE_SERVICES_SETUP.sql` (006–007). Existing projects run only migrations not yet applied.
 2. Copy `.env.example` to `.env.local`. Set the project URL and **publishable (or legacy anon) key** from Supabase's Connect dialog. Never put a service-role or secret key in a Vite environment variable.
 3. In Authentication → URL Configuration, set your deployed Site URL and add your local development URL (`http://127.0.0.1:5173/`) to allowed redirects. Configure an email sender for production. Email sign-in creates an account if necessary.
 4. Restart `npm run dev`. Open **Account & publishing**, request a sign-in link, and follow it. Save a private draft, choose a username, and publish. Public URLs are `/p/username`.
-5. Deploy `npm run build` output (`dist`) on a static host, configuring the same public environment variables at build time. Rewrite all application routes, including `/p/*`, to `/index.html`. HTTPS is required in production. A local `127.0.0.1` link is not accessible to other people.
+5. Build with `npm run build`. For the complete feature set, deploy the repository with its `api` handlers and server environment variables; the included `vercel.json` routes public profiles through server-rendered metadata. Static-only hosting can serve basic profiles using an `/index.html` fallback, but does not enable the new server features. A local `127.0.0.1` link is not accessible to other people.
 
 ## Data behavior
 

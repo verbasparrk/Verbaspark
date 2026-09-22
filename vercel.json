@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": { "api/page.js": { "includeFiles": "dist/index.html" } },
+  "rewrites": [
+    { "source": "/p/:slug", "destination": "/api/page?slug=:slug" },
+    { "source": "/", "destination": "/index.html" }
+  ]
+}

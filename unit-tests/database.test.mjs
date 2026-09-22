@@ -12,7 +12,7 @@ test('database enforces owners, revisions, idempotency and separate publication 
  grant usage on schema public,auth,storage to anon,authenticated;
  grant select,insert on storage.objects to anon,authenticated;
  insert into auth.users values('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');`);
- for(const file of ['001_accounts.sql','002_gallery_images.sql','003_autosave.sql','004_page_files.sql','005_hidden_blocks.sql'])await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+ for(const file of ['001_accounts.sql','002_gallery_images.sql','003_autosave.sql','004_page_files.sql','005_hidden_blocks.sql','007_share_covers.sql'])await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
  const login=async(id,role='authenticated')=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role '+role)};
  const save=(name,rev,id)=>db.query("select public.save_draft($1::jsonb,$2::bigint,$3::uuid,'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') as revision",[JSON.stringify({name,cards:[]}),rev,id]);
  await login('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
@@ -47,5 +47,14 @@ test('database enforces owners, revisions, idempotency and separate publication 
  await login('','anon');assert.deepEqual((await db.query('select document from public.published_pages')).rows[0].document.cards,[{type:'text',title:'Visible'}]);assert.equal((await db.query("select * from storage.objects where bucket_id='page-files'")).rows.length,0);
  await login('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');await db.query('delete from public.published_pages');
  await login('','anon');assert.equal((await db.query("select * from storage.objects where bucket_id='page-files'")).rows.length,0);
+ await login('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+ const cover='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/'+'b'.repeat(64)+'.webp';
+ await db.query("insert into storage.objects(id,bucket_id,name) values('99999999-9999-4999-8999-999999999999','page-images',$1)",[cover]);
+ await db.query("select public.save_draft($1,4,'99999999-9999-4999-8999-999999999999','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')",[JSON.stringify({cards:[],profile:{seo:{imagePath:cover}}})]);
+ await login('','anon');assert.equal((await db.query("select * from storage.objects where bucket_id='page-images'")).rows.length,0);
+ await login('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');await db.query("select public.publish_page('alice',5,'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')");
+ await login('','anon');assert.equal((await db.query("select * from storage.objects where bucket_id='page-images'")).rows.length,1);
+ await login('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');await db.query('delete from public.published_pages');
+ await login('','anon');assert.equal((await db.query("select * from storage.objects where bucket_id='page-images'")).rows.length,0);
  }finally{await db.close()}
 });

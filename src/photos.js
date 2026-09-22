@@ -1,0 +1,22 @@
+﻿export function photoPanel(card,esc){return `<div class="photo-tools"><label class="upload-zone"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Upload a photo<input id="photo-upload" type="file" accept="image/jpeg,image/png,image/webp"><small>Choose or drop a JPG, PNG, or WebP · up to 15 MB</small></label><p id="photo-status" role="status" class="hint"></p><label>Image URL<input id="card-image" type="url" value="${card.image?.startsWith('data:')?'':esc(card.image||'')}" placeholder="https://…"></label>${card.image?.startsWith('data:')?'<p class="hint">Uploaded photo saved on this device.</p>':''}<label>Image description<input id="photo-alt" value="${esc(card.alt||'')}" placeholder="Describe the photo for screen readers"></label><div class="section-label">CROP & POSITION <button id="reset-crop">Reset</button></div>${[['x','Horizontal',0,100,50,'%'],['y','Vertical',0,100,50,'%'],['zoom','Zoom',100,200,100,'%']].map(([key,label,min,max,fallback,unit])=>`<label>${label}<output>${card.crop?.[key]??fallback}${unit}</output><input data-crop="${key}" type="range" min="${min}" max="${max}" value="${card.crop?.[key]??fallback}"></label>`).join('')}<p class="hint">Position adjusts the visible area. Zoom in to crop more closely.</p></div>`}
+export function imageSource(src){return /^(https?:\/\/|data:image\/(jpeg|png|webp);base64,)/i.test(src||'')?src:''}
+export function cropStyle(card){const crop=card.crop||{};return `object-position:${crop.x??50}% ${crop.y??50}%;transform:scale(${(crop.zoom??100)/100});transform-origin:${crop.x??50}% ${crop.y??50}%`}
+export async function preparePhoto(file){
+ if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Choose a JPG, PNG, or WebP image.');
+ if(file.size>15*1024*1024)throw Error('This photo is too large. Choose one under 15 MB.');
+ const bitmap=await createImageBitmap(file).catch(()=>{throw Error('This image could not be opened. Try another file.');});
+ try{const scale=Math.min(1,1600/Math.max(bitmap.width,bitmap.height));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));const ctx=canvas.getContext('2d');ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);return canvas.toDataURL('image/webp',.82);}finally{bitmap.close()}
+}
+export function bindPhotos(state,selected,change){const card=state.cards.find(c=>c.id===selected);if(!['photo','catalog'].includes(card?.type)||!document.querySelector('.photo-tools'))return;
+ const status=message=>{const el=document.querySelector('#photo-status');if(el)el.textContent=message;};
+ const upload=async file=>{if(!file)return;status('Preparing photo…');try{const image=await preparePhoto(file);if(!state.cards.includes(card))return;change(()=>{card.image=image;card.crop={x:50,y:50,zoom:100}});status('Photo ready. Saved on this device.');}catch(error){status(error.message)}};
+ document.querySelector('#photo-upload')?.addEventListener('change',e=>upload(e.target.files[0]));
+ const zone=document.querySelector('.upload-zone');zone.ondragover=e=>{e.preventDefault();zone.classList.add('over')};zone.ondragleave=()=>zone.classList.remove('over');zone.ondrop=e=>{e.preventDefault();zone.classList.remove('over');upload(e.dataTransfer.files[0])};
+ const el=document.querySelector(`.card[data-id="${CSS.escape(card.id)}"]`);
+ el?.addEventListener('dragover',e=>{if(e.dataTransfer.types.includes('Files')){e.preventDefault();e.stopImmediatePropagation();el.classList.add('drop-target')}},true);
+ el?.addEventListener('drop',e=>{if(e.dataTransfer.files.length){e.preventDefault();e.stopImmediatePropagation();el.classList.remove('drop-target');upload(e.dataTransfer.files[0])}},true);
+ document.querySelector('#photo-alt').onchange=e=>change(()=>card.alt=e.target.value);
+ document.querySelector('#reset-crop').onclick=()=>change(()=>card.crop={x:50,y:50,zoom:100});
+ document.querySelectorAll('[data-crop]').forEach(input=>{input.oninput=()=>{const draft={...card,crop:{x:50,y:50,zoom:100,...card.crop,[input.dataset.crop]:Number(input.value)}};const img=el?.querySelector('img');if(img)img.style.cssText=cropStyle(draft);input.closest('label').querySelector('output').textContent=input.value+'%'};input.onchange=()=>change(()=>card.crop={x:50,y:50,zoom:100,...card.crop,[input.dataset.crop]:Number(input.value)})});
+}
+

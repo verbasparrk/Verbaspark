@@ -1,0 +1,14 @@
+import {mapEmbedSource} from './maps.js';
+import {cleanFile} from './files.js';
+import {defaults,fonts} from './design.js';
+export function cleanPage(value){
+ if(!value||!Array.isArray(value.cards)||value.cards.length>100)throw Error('Invalid page document.');
+ const text=(v,n=10000)=>String(v??'').slice(0,n),color=(v,f)=>/^#[a-f0-9]{6}$/i.test(v)?v:f;
+ const num=(v,min,max,f)=>Number.isFinite(Number(v))?Math.max(min,Math.min(max,Number(v))):f;
+ const d={...defaults},input=value.design||{};
+ for(const k of ['background','surface','text','muted','border'])d[k]=color(input[k],d[k]);
+ for(const k of ['headingFont','bodyFont'])if(Object.hasOwn(fonts,input[k]))d[k]=input[k];
+ for(const [k,min,max] of [['fontSize',11,20],['headingScale',80,125],['lineHeight',1.2,2],['weight',400,700],['padding',16,36],['borderWidth',0,3],['buttonRadius',0,28]])d[k]=num(input[k],min,max,d[k]);
+ d.mode=input.mode==='light'?'light':'dark';d.shadow=['none','soft','lifted'].includes(input.shadow)?input.shadow:'none';d.buttonStyle=input.buttonStyle==='outline'?'outline':'solid';
+ return {layout:value.layout==='classic'?'classic':'bento',onboarding:Object.fromEntries(['name','photo','link','preview','dismissed'].map(key=>[key,value.onboarding?.[key]===true])),name:text(value.name,100),accent:color(value.accent,'#448aff'),gap:num(value.gap,8,28,16),radius:num(value.radius,0,32,12),editorTheme:value.editorTheme==='light'?'light':'dark',design:d,cards:value.cards.map((c,i)=>({id:'loaded-'+i,hidden:c.hidden===true,type:['intro','photo','project','text','contact','link','video','gallery','document','catalog','audio','location'].includes(c.type)?c.type:'text',size:['small','wide','tall'].includes(c.size)?c.size:'small',compact:typeof c.compact==='boolean'?c.compact:undefined,linkStyle:['icon','card','wide'].includes(c.linkStyle)?c.linkStyle:'card',mapEmbed:mapEmbedSource(c.mapEmbed),mapMode:['auto','click','link'].includes(c.mapMode)?c.mapMode:'auto',file:cleanFile(c.file),address:text(c.address,500),latitude:c.latitude==null||c.latitude===''?'':num(c.latitude,-85,85,0),longitude:c.longitude==null||c.longitude===''?'':num(c.longitude,-180,180,0),photoRole:['cover','portrait'].includes(c.photoRole)?c.photoRole:'content',subtitle:text(c.subtitle,300),ctaLabel:text(c.ctaLabel,80),title:text(c.title,500),body:text(c.body),...(c.url?{url:text(c.url,2000)}:{}),...(c.image?{image:text(c.image,6000000)}:{}),...(c.imagePath?{imagePath:text(c.imagePath,300)}:{}),galleryMode:c.galleryMode==='slider'?'slider':'grid',galleryGap:num(c.galleryGap,0,24,8),galleryRadius:num(c.galleryRadius,0,24,8),images:Array.isArray(c.images)?c.images.slice(0,12).map(p=>({image:text(p.image,6000000),caption:text(p.caption,300),...(p.imagePath?{imagePath:text(p.imagePath,300)}:{})})):[],alt:text(c.alt,500),crop:{x:num(c.crop?.x,0,100,50),y:num(c.crop?.y,0,100,50),zoom:num(c.crop?.zoom,100,200,100)}}))};
+}

@@ -23,3 +23,5 @@ test('a damaged newest checkpoint falls back to a valid recovery version',async(
  await page.evaluate(()=>new Promise((resolve,reject)=>{const req=indexedDB.open('verbaspark-recovery',1);req.onsuccess=()=>{const db=req.result;const tx=db.transaction('snapshots','readwrite');tx.objectStore('snapshots').put({id:'corrupt-record',time:Date.now()+10000,document:{cards:[null]}});tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>reject(tx.error)}}));
  await page.reload();await expect(page.locator('[data-id="project"] h2')).toHaveText('Recoverable title');
 });
+
+test.beforeEach(async({page})=>{await page.addInitScript(()=>localStorage.setItem('verbaspark-welcome-dismissed','1'))});

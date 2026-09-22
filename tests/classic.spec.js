@@ -35,3 +35,5 @@ test('classic can keep existing content, switch back to bento and undo',async({p
  await page.locator('#undo').click();await expect(page.locator('.classic-page')).toBeVisible();
  await page.reload();await expect(page.locator('.classic-page')).toBeVisible();
 });
+
+test.beforeEach(async({page})=>{await page.addInitScript(()=>localStorage.setItem('verbaspark-welcome-dismissed','1'))});

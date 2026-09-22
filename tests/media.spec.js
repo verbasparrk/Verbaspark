@@ -40,3 +40,5 @@ test('quick add recognizes files and video links and rejects invalid uploads',as
  await page.locator('[data-tab="blocks"]').click();await page.locator('.quick-content summary').click();await page.locator('#quick-url').fill('https://vimeo.com/123456789/abcdef1234');await page.locator('#quick-add').click();await expect(page.locator('.video [data-media]')).toHaveAttribute('data-src','https://player.vimeo.com/video/123456789?h=abcdef1234');
  await page.locator('[data-tab="blocks"]').click();await page.locator('.quick-content summary').click();await page.locator('#quick-url').fill('https://example.com/price.pdf');await page.locator('#quick-add').click();await expect(page.locator('.document').last().locator('.file-meta')).toContainText('price.pdf');
 });
+
+test.beforeEach(async({page})=>{await page.addInitScript(()=>localStorage.setItem('verbaspark-welcome-dismissed','1'))});

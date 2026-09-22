@@ -1,3 +1,4 @@
+import {openWelcome} from './welcome.js';
 import {openDashboard} from './dashboard.js';
 import {openPublishReview} from './publish-review.js';
 import {contentLibrary,mountContentLibrary,newBlock,duplicateBlock,publicDocument} from './content-library.js';
@@ -33,7 +34,15 @@ const initial={name:'Alex Morgan',accent:'#448aff',gap:16,radius:12,cards:[
  {id:'linkedin',type:'link',size:'small',title:'LinkedIn',body:'Let’s connect',url:'https://linkedin.com'},
  {id:'email',type:'link',size:'small',title:'Say hello',body:'My inbox is open',url:'mailto:alex@example.com'}]};
 let state;try{state=JSON.parse(localStorage.getItem('verbaspark-v1'))||structuredClone(initial);if(!Array.isArray(state.cards))throw Error();}catch{state=structuredClone(initial)}
+let hasLegacyDraft=false;try{hasLegacyDraft=!!localStorage.getItem('verbaspark-v1')}catch{}
 const saving=createSaving();
+async function welcomeNewUser(){
+ if(!saving.isNew||hasLegacyDraft)return;
+ try{if(localStorage.getItem('verbaspark-welcome-dismissed'))return}catch{}
+ if(cloud){try{const {data,error}=await cloud.auth.getSession();if(error||data.session)return}catch{return}}
+ const dismiss=()=>{try{localStorage.setItem('verbaspark-welcome-dismissed','1')}catch{}};
+ openWelcome({complete:document=>{loadRecovered({...document,editorTheme:state.editorTheme});dismiss()},skip:dismiss,signIn:()=>{dismiss();document.querySelector('#account').click()}});
+}
 let selected='project',tab='edit',mobile=matchMedia('(max-width:700px)').matches,preview=false,history=[],future=[],dragged=null;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeUrl=s=>/^(https?:\/\/|mailto:)/i.test(s||'')?s:'#';
@@ -82,4 +91,4 @@ on('#export','click',async()=>{let exportState;try{exportState=await exportImage
 }
 watchMobile(()=>{if(!location.pathname.startsWith('/p/'))render()},value=>{mobile=value});
 const publicMatch=location.pathname.match(/^\/p\/([a-z0-9-]+)\/?$/);
-if(publicMatch){document.querySelector('#app').textContent='Loading page…';publicPage(publicMatch[1]).then(document=>{state=cleanPage(document);applyDesign(state);window.document.body.classList.add('export-page');window.document.title=state.name+' — Verbaspark';window.document.querySelector('#app').innerHTML=pageHTML(false);bentoRuntime();galleryRuntime()}).catch(error=>{document.querySelector('#app').textContent=error.message})}else {document.querySelector('#app').textContent='Opening your draft…';saving.start(state).then(document=>{state=document;render();startSaving(saving)}).catch(()=>{render();startSaving(saving)})}
+if(publicMatch){document.querySelector('#app').textContent='Loading page…';publicPage(publicMatch[1]).then(document=>{state=cleanPage(document);applyDesign(state);window.document.body.classList.add('export-page');window.document.title=state.name+' — Verbaspark';window.document.querySelector('#app').innerHTML=pageHTML(false);bentoRuntime();galleryRuntime()}).catch(error=>{document.querySelector('#app').textContent=error.message})}else {document.querySelector('#app').textContent='Opening your draft…';saving.start(state).then(document=>{state=document;render();startSaving(saving);welcomeNewUser()}).catch(()=>{render();startSaving(saving)})}

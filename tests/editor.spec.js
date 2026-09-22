@@ -206,3 +206,5 @@ test('inline text editing saves, supports undo, and cancels with Escape',async({
  await expect(page.locator('.inspector')).toHaveCount(0);
  await expect(page.locator('[data-add="intro"]')).toBeVisible();
 });
+
+test.beforeEach(async({page})=>{await page.addInitScript(()=>localStorage.setItem('verbaspark-welcome-dismissed','1'))});

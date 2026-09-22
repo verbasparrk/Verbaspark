@@ -32,3 +32,5 @@ test('first steps reflect actual edits and disappear after completion',async({pa
  await expect(page.locator('[data-first-step="link"]')).toBeDisabled();await page.locator('[data-first-step="preview"]').click();await page.locator('#preview').click();
  await expect(page.locator('.first-steps')).toHaveCount(0);await page.reload();await expect(page.locator('.first-steps')).toHaveCount(0);
 });
+
+test.beforeEach(async({page})=>{await page.addInitScript(()=>localStorage.setItem('verbaspark-welcome-dismissed','1'))});

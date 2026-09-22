@@ -12,3 +12,5 @@ test('mobile review can open settings and ignores unfinished hidden blocks',asyn
  await expect(page.locator('.mobile-sheet')).toBeVisible();await expect(page.locator('#gallery-upload')).toBeFocused();await page.locator('#block-hidden').check();await page.locator('.sheet-done').click();
  await page.locator('.mobile-menu-toggle').click();await page.getByRole('button',{name:'Review before publishing',exact:true}).click();await expect(page.locator('#review-continue')).toBeEnabled();await expect(page.locator('.publish-review')).toContainText('1 hidden blocks excluded');await page.screenshot({path:'test-results/publish-review-mobile.png'});
 });
+
+test.beforeEach(async({page})=>{await page.addInitScript(()=>localStorage.setItem('verbaspark-welcome-dismissed','1'))});

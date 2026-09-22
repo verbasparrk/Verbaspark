@@ -13,3 +13,5 @@ test('duplicate is independent; hidden blocks stay in draft and out of preview a
  await page.locator('#page-menu-toggle').click();const download=page.waitForEvent('download');await page.locator('#export').click();const html=await fs.readFile(await(await download).path(),'utf8');expect(html).not.toContain('Private future project');
  await page.reload();await expect(page.locator('.block-hidden h2')).toHaveText('Private future project');await page.locator('.block-hidden').click();await expect(page.locator('#block-hidden')).toBeChecked();await page.locator('#block-hidden').uncheck();await expect(page.locator('.block-hidden')).toHaveCount(0);await page.locator('#undo').click();await expect(page.locator('.block-hidden')).toHaveCount(1);
 });
+
+test.beforeEach(async({page})=>{await page.addInitScript(()=>localStorage.setItem('verbaspark-welcome-dismissed','1'))});

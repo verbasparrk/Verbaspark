@@ -30,7 +30,7 @@ test('classic template edits, persists and exports its profile header on desktop
 test('classic can keep existing content, switch back to bento and undo',async({page})=>{
  await page.goto('/');const original=await page.locator('.card h2').allTextContents();await useClassic(page,true);
  expect((await page.locator('.card h2').allTextContents()).sort()).toEqual([...original].sort());
- await page.locator('[data-tab="design"]').click();await page.locator('#page-layout').selectOption('bento');
+ await page.locator('[data-tab="design"]').click();await page.locator(`[data-layout-choice="${'bento'}"]`).click();
  await expect(page.locator('.classic-page')).toHaveCount(0);await expect(page.locator('.bento[data-measured]')).toBeVisible();
  await page.locator('#undo').click();await expect(page.locator('.classic-page')).toBeVisible();
  await page.reload();await expect(page.locator('.classic-page')).toBeVisible();

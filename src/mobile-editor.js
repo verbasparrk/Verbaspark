@@ -1,14 +1,15 @@
+import {workspaceSections} from './workspace-navigation.js';
 import {icon} from './icons.js';
 let panel=null;
 const phone=()=>matchMedia('(max-width:700px)').matches;
 export function mountMobile({tab,preview,render,setTab}){
  const app=document.querySelector('#app');document.body.classList.toggle('mobile-preview',phone()&&preview);
  if(!phone()){panel=null;return}
- if(preview)panel=null;
+ if(preview)panel=null;document.querySelector('#preview').dataset.mobileTool='preview';
  const menu=document.createElement('button');menu.className='mobile-menu-toggle secondary';menu.setAttribute('aria-label','Open page menu');menu.innerHTML=icon('more');document.querySelector('.top-actions').append(menu);
  const close=()=>{panel=null;render()};
  menu.onclick=()=>{panel=panel==='menu'?null:'menu';render()};
- if(!preview){const nav=document.createElement('nav');nav.className='mobile-tools';nav.setAttribute('aria-label','Page editing tools');nav.innerHTML=`<button data-mobile-tool="blocks">${icon('plus')}Add</button><button data-mobile-tool="design">${icon('design')}Design</button><button data-mobile-tool="preview">${icon('eye')}Preview</button>`;app.append(nav);nav.querySelectorAll('button').forEach(button=>button.onclick=()=>{if(button.dataset.mobileTool==='preview'){panel=null;document.querySelector('#preview').click()}else{panel='settings';setTab(button.dataset.mobileTool);render()}});
+ if(!preview){const nav=document.createElement('nav');nav.className='mobile-tools';nav.setAttribute('aria-label','Page editing tools');nav.innerHTML=workspaceSections.map(([id,label,glyph])=>'<button data-mobile-tool="'+id+'">'+icon(glyph)+'<span>'+label+'</span></button>').join('');app.append(nav);nav.querySelectorAll('button').forEach(button=>button.onclick=()=>{const id=button.dataset.mobileTool;if(['blocks','design'].includes(id)){panel='settings';setTab(id);render()}else{panel=null;document.querySelector('#'+id).click()}});
  document.querySelectorAll('.card[draggable]').forEach(card=>card.addEventListener('click',event=>{if(event.target.closest('.resize')||event.target.isContentEditable)return;panel='settings';setTab('edit');queueMicrotask(()=>{if(!document.querySelector('.mobile-sheet[open]'))render()})},true));}
  if(!panel)return;
  const sheet=document.createElement('dialog');sheet.className='mobile-sheet';sheet.setAttribute('aria-label',panel==='menu'?'Page menu':tab==='blocks'?'Add content':tab==='design'?'Page design':'Edit selected card');sheet.innerHTML=`<div class="sheet-header"><span class="sheet-grip"></span><strong>${panel==='menu'?'Your page':tab==='blocks'?'Add content':tab==='design'?'Page design':'Edit card'}</strong><button class="sheet-done">Done</button></div><div class="sheet-content"></div>`;

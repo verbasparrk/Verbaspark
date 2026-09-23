@@ -17,7 +17,7 @@ export async function saveDraft(document,{userId,revision,requestId}){
   }else if(file.path)delete file.src;
  }
 
- for(const card of [...copy.cards.flatMap(c=>[c,...(c.images||[])]),...(copy.profile?.seo?[copy.profile.seo]:[])]){
+ for(const card of [...copy.cards.flatMap(c=>[c,...(c.images||[])]),...(copy.profile?.seo?[copy.profile.seo]:[]),...(copy.showcaseCover?[copy.showcaseCover]:[])]){
   if(card.image?.startsWith('data:image/')){const blob=await(await fetch(card.image)).blob();const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))].map(b=>b.toString(16).padStart(2,'0')).join('');const path=`${user.id}/${hash}.webp`;
    if(!cache.has(path)){const result=await cloud.storage.from('page-images').upload(path,blob,{contentType:blob.type});if(result.error&&String(result.error.statusCode)!=='409')throw result.error;cache.set(path,true)}card.imagePath=path;delete card.image;
   }else if(card.imagePath){delete card.image;}
@@ -25,8 +25,8 @@ export async function saveDraft(document,{userId,revision,requestId}){
  const current=check(await cloud.auth.getUser()).user;if(current?.id!==userId)throw Error('Account changed.');
  return check(await cloud.rpc('save_draft',{draft_document:copy,expected_revision:revision,request_id:requestId,expected_owner:userId}));
 }
-export async function resolveImages(document){for(const c of [...(document.cards||[]).flatMap(c=>[c,...(c.images||[])]),...(document.profile?.seo?[document.profile.seo]:[])]){if(c.imagePath){const result=await cloud.storage.from('page-images').createSignedUrl(c.imagePath,3600);c.image=result.data?.signedUrl||''}if(c.file?.path){const result=await cloud.storage.from('page-files').createSignedUrl(c.file.path,3600);c.file.src=result.data?.signedUrl||''}}return document;}
-export async function exportImages(document){const copy=structuredClone(document);for(const card of [...copy.cards.flatMap(c=>[c,...(c.images||[])]),...(copy.profile?.seo?[copy.profile.seo]:[])]){
+export async function resolveImages(document){for(const c of [...(document.cards||[]).flatMap(c=>[c,...(c.images||[])]),...(document.profile?.seo?[document.profile.seo]:[]),...(document.showcaseCover?[document.showcaseCover]:[])]){if(c.imagePath){const result=await cloud.storage.from('page-images').createSignedUrl(c.imagePath,3600);c.image=result.data?.signedUrl||''}if(c.file?.path){const result=await cloud.storage.from('page-files').createSignedUrl(c.file.path,3600);c.file.src=result.data?.signedUrl||''}}return document;}
+export async function exportImages(document){const copy=structuredClone(document);for(const card of [...copy.cards.flatMap(c=>[c,...(c.images||[])]),...(copy.profile?.seo?[copy.profile.seo]:[]),...(copy.showcaseCover?[copy.showcaseCover]:[])]){
  for(const [object,pathKey,sourceKey] of [[card,'imagePath','image'],[card.file,'path','src']]){if(!object?.[pathKey])continue;if(!object[sourceKey])throw Error('Reload your online draft to refresh its photos and files before exporting.');const response=await fetch(object[sourceKey]);if(!response.ok)throw Error('Reload your online draft to refresh its photos and files before exporting.');const blob=await response.blob();object[sourceKey]=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)});delete object[pathKey]}
  }return copy;}
 export async function publicPage(slug){if(!cloud)throw Error('Publishing is not connected yet.');const row=check(await cloud.from('published_pages').select('document').eq('slug',slug).maybeSingle());if(!row)throw Error('This page is not published.');return resolveImages(row.document)}

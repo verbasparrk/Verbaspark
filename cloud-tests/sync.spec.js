@@ -1,5 +1,55 @@
 import {test,expect} from '@playwright/test';
 import fs from 'node:fs/promises';
+test('Showcase cover uploads, reuses online storage and renders on the public page',async({page})=>{
+ const server=await mockCloud(page);await page.goto('/');await expect(page.locator('#save-status')).toContainText('Saved online');
+ await page.locator('[data-tab=design]').click();await page.locator('[data-layout-choice=showcase]').click();
+ const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=8;c.height=8;c.getContext('2d').fillRect(0,0,8,8);return c.toDataURL().split(',')[1]});
+ await page.locator('#showcase-cover-upload').setInputFiles({name:'cover.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
+ await expect.poll(()=>server.draft?.document.showcaseCover?.imagePath).toMatch(/^aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\/[a-f0-9]{64}\.webp$/);
+ expect(server.draft.document.showcaseCover.image).toBeUndefined();
+ await page.reload();await page.locator('[data-tab=design]').click();await expect(page.locator('#showcase-cover-source')).toHaveValue('library');
+ await page.locator('#showcase-cover-library').click();
+ await expect(page.locator('.file-library-list .library-file')).not.toHaveCount(0);
+ await expect(page.locator('.file-library-list .library-file').filter({hasText:'saved online'})).not.toHaveCount(0);
+ await page.locator('.file-library-list .library-file').filter({hasText:'saved online'}).last().getByRole('button',{name:'Use as Showcase cover'}).click();
+ await expect(page.locator('.showcase-page .intro .photo-viewport img')).toHaveAttribute('src',/token=mock/);
+ await expect.poll(()=>server.draft?.document.showcaseCover?.source).toBe('library');
+ const download=page.waitForEvent('download');await page.locator('#export').evaluate(el=>el.click());
+ const html=await fs.readFile(await (await download).path(),'utf8');expect(html).toContain('class="personal-page showcase-page"');expect(html).toContain('data:image/png;base64,');
+ server.publish(structuredClone(server.draft.document));await page.goto('/p/alice');
+ await expect(page.locator('.showcase-page .intro .photo-viewport img')).toHaveAttribute('src',/token=mock/);
+});
+test('contact preserves answers on failure, blocks duplicate submissions and shows custom confirmation',async({page})=>{
+ const server=await mockCloud(page);server.publish({name:'Alice',profile:{contactForm:true,contactSuccess:'Thank you! I reply within two working days.'},cards:[]});
+ let requests=0,release;await page.route('**/api/contact',async route=>{requests++;if(requests===1){await new Promise(resolve=>release=resolve);return route.fulfill({status:503,json:{error:'Unavailable'}})}return route.fulfill({json:{ok:true}})});
+ await page.goto('/p/alice');const form=page.locator('[data-contact-form]');
+ await form.locator('[name=name]').fill('Guest');await form.locator('[name=email]').fill('guest@example.com');await form.locator('[name=message]').fill('My enquiry');
+ await form.locator('button').click();await expect(form.locator('button')).toHaveText('Sending...');await expect(form).toHaveAttribute('aria-busy','true');
+ await form.dispatchEvent('submit');expect(requests).toBe(1);release();
+ await expect(form.locator('button')).toHaveText('Try again');await expect(form.locator('[name=message]')).toHaveValue('My enquiry');await expect(form.locator('[name=email]')).toHaveValue('guest@example.com');
+ await form.locator('button').click();await expect(form.locator('[role=status]')).toHaveText('Thank you! I reply within two working days.');await expect(form.locator('[name=message]')).toHaveValue('');expect(requests).toBe(2);
+});
+test('inbox badge, status filters and reply survive reload on desktop and mobile',async({page})=>{
+ await mockCloud(page);await page.goto('/');
+ await expect(page.locator('.primary-navigation .inbox-badge')).toHaveText('1');
+ await page.locator('[data-main-section="inbox"]').click();
+ await expect(page.locator('.inbox-reply')).toHaveAttribute('href',/^mailto:visitor%40example\.com\?subject=Re%3A/);
+ await page.locator('#inbox-filter').selectOption('new');
+ await page.locator('.inbox-actions select').selectOption('read');
+ await expect(page.locator('.inbox-message')).toHaveCount(0);
+ await expect(page.locator('.primary-navigation .inbox-badge')).toHaveCount(0);
+ await page.locator('#inbox-filter').selectOption('read');
+ await expect(page.locator('.inbox-message')).toHaveCount(1);
+ await page.locator('.inbox-actions select').selectOption('closed');
+ await page.locator('#inbox-filter').selectOption('closed');
+ await expect(page.locator('.inbox-actions select')).toHaveValue('closed');
+ await page.reload();await page.setViewportSize({width:390,height:844});
+ await page.locator('[data-mobile-tool="inbox"]').click();
+ await expect(page.locator('.inbox-actions select')).toHaveValue('closed');
+ await page.locator('.inbox-actions select').selectOption('new');
+ await expect(page.locator('.mobile-tools .inbox-badge')).toHaveText('1');
+ expect(await page.locator('.profile-tool').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+});
 test('public visitor switches language, sends an enquiry and generates only public activity',async({page})=>{
  const server=await mockCloud(page);server.publish({name:'Alice',profile:{contactForm:true,analytics:true,defaultLanguage:'en',languages:['sl'],names:{sl:'Alica'},vcard:{enabled:true,name:'Alice'}},cards:[{id:'intro',type:'intro',title:'Hello',body:'My page',url:'https://example.com',translations:{sl:{title:'Pozdrav'}}}]});
  const events=[],messages=[];await page.route('**/api/event',route=>{events.push(route.request().postDataJSON());return route.fulfill({json:{ok:true}})});await page.route('**/api/contact',route=>{messages.push(route.request().postDataJSON());return route.fulfill({json:{ok:true}})});
@@ -11,7 +61,7 @@ test('public visitor switches language, sends an enquiry and generates only publ
 });
 test('owner can read private inbox and aggregate link performance',async({page})=>{
  const server=await mockCloud(page);server.publish({name:'Alice',profile:{analytics:true},cards:[{id:'intro',type:'intro',title:'My website',url:'https://example.com'}]});await page.goto('/');await expect(page.locator('#save-status')).toContainText('Saved online');
- await page.locator('#page-menu-toggle').click();await page.locator('#inbox').click();await expect(page.locator('.inbox-message')).toContainText('A private enquiry');await expect(page.locator('.inbox-message a')).toHaveAttribute('href','mailto:visitor%40example.com');await page.locator('.profile-tool .account-close').click();
+ await page.locator('#page-menu-toggle').click();await page.locator('#inbox').click();await expect(page.locator('.inbox-message')).toContainText('A private enquiry');await expect(page.locator('.inbox-message a')).toHaveAttribute('href',/^mailto:visitor%40example\.com\?subject=Re%3A/);await page.locator('.profile-tool .account-close').click();
  await page.locator('#page-menu-toggle').click();await page.locator('#analytics').click();await expect(page.locator('.analytics-totals')).toHaveText('3 visits · 2 clicks');await expect(page.locator('.profile-tool table').first()).toContainText('My website');await page.setViewportSize({width:390,height:844});expect(await page.locator('.profile-tool').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
 });
 test('dashboard tracks publication, sharing and unpublished edits on desktop and mobile',async({page})=>{
@@ -29,14 +79,25 @@ test('dashboard tracks publication, sharing and unpublished edits on desktop and
  await page.setViewportSize({width:1280,height:800});await open();await expect(page.locator('#publication-status')).toHaveText('Not published');await expect(page.locator('#dashboard-sharing')).toBeHidden();
 });
 const user={id:'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',email:'alice@example.com',aud:'authenticated',role:'authenticated',app_metadata:{provider:'email'},user_metadata:{}};
-async function mockCloud(page){let draft=null,published=null,fail=false,saves=0;const files=new Set();const token=['eyJhbGciOiJIUzI1NiJ9',Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url'),'mock-signature'].join('.');
+async function mockCloud(page){let draft=null,published=null,fail=false,saves=0;const files=new Set();let inbox=[{id:'message1',name:'Visitor',email:'visitor@example.com',message:'A private enquiry',status:'new',created_at:new Date().toISOString()}];const token=['eyJhbGciOiJIUzI1NiJ9',Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url'),'mock-signature'].join('.');
  await page.addInitScript(({user,token})=>{if(!localStorage.getItem('sb-127-auth-token'))localStorage.setItem('sb-127-auth-token',JSON.stringify({access_token:token,refresh_token:'mock-refresh',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user}))},{user,token});
  await page.route('http://127.0.0.1:59999/**',async route=>{const path=new URL(route.request().url()).pathname;const reply=body=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
   if(path==='/auth/v1/user')return reply(user);
-  if(path.startsWith('/storage/v1/object/page-files/')&&route.request().method()==='POST'){files.add(path.split('/page-files/')[1]);return reply({Key:path})}
+  if(/^\/storage\/v1\/object\/(page-files|page-images)\//.test(path)&&route.request().method()==='POST'){files.add(path.replace('/storage/v1/object/',''));return reply({Key:path})}
+  if(path==='/storage/v1/object/list/page-images'&&route.request().method()==='POST')return reply([...files].filter(file=>file.startsWith('page-images/'+user.id+'/')).map(file=>({id:file,name:file.split('/').at(-1),metadata:{size:100,mimetype:'image/webp'}})));
+  if(path==='/storage/v1/object/list/page-files'&&route.request().method()==='POST')return reply([]);
   if(path.startsWith('/storage/v1/object/sign/page-files/')&&route.request().method()==='POST')return reply({signedURL:path.replace('/storage/v1','')+'?token=mock'});
+  if(path.startsWith('/storage/v1/object/sign/page-images/')&&route.request().method()==='POST')return reply({signedURL:path.replace('/storage/v1','')+'?token=mock'});
   if(path.startsWith('/storage/v1/object/sign/page-files/'))return route.fulfill({contentType:'application/pdf',body:'%PDF-1.4\nMock attachment\n%%EOF'});
-  if(path==='/rest/v1/contact_messages')return reply([{id:'message1',name:'Visitor',email:'visitor@example.com',message:'A private enquiry',created_at:new Date().toISOString()}]);
+  if(path.startsWith('/storage/v1/object/sign/page-images/'))return route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==','base64')});
+  if(path==='/rest/v1/contact_messages'){
+   const params=new URL(route.request().url()).searchParams,method=route.request().method();
+   let rows=inbox.filter(row=>!params.has('status')||params.get('status')==='eq.'+row.status);
+   if(method==='HEAD')return route.fulfill({status:200,headers:{'content-range':'0-0/'+rows.length,'access-control-expose-headers':'content-range'},body:''});
+   if(method==='PATCH'){const row=inbox.find(row=>params.get('id')==='eq.'+row.id);Object.assign(row,route.request().postDataJSON());return reply({id:row.id})}
+   if(method==='DELETE'){inbox=inbox.filter(row=>params.get('id')!=='eq.'+row.id);return reply(null)}
+   return reply(rows);
+  }
   if(path==='/rest/v1/profile_metrics')return reply([{day:new Date().toISOString().slice(0,10),event:'view',card:'',total:3},{day:new Date().toISOString().slice(0,10),event:'click',card:'intro',total:2}]);
   if(path==='/rest/v1/drafts')return reply(draft?[draft]:[]);
   if(path==='/rest/v1/published_pages'){if(route.request().method()==='DELETE')published=null;return reply(published?[published]:[]);}

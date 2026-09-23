@@ -4,6 +4,8 @@ Implemented: contact inbox, aggregate analytics, server-rendered share metadata,
 
 ## Existing Supabase project
 
+For configurable contact fields, also run `supabase/migrations/008_contact_fields.sql` once after 006–007. This adds a structured answer snapshot and permits forms without an email field. Previously received messages remain available. The form editor is under **Add content → Contact & links → Contact form**, and **Profile settings → Customize form fields**. One form per profile supports up to 12 fields, with text, long text, email, phone, date, dropdown and checkbox types, optional/required fields, reordering and removal. Republishing applies the new form to visitors; old submissions retain the labels used when they were submitted.
+
 Run **only** `supabase/PROFILE_SERVICES_SETUP.sql` (migrations 006 and 007) in the SQL editor. Do not rerun INITIAL_SETUP.sql on an existing project. The migration creates private inbox and analytics tables plus server-only rate limiting functions. Existing profiles do not collect analytics or accept messages until their owner enables those options and republishes.
 
 ## Server configuration
@@ -32,3 +34,8 @@ Restart `npm run dev` after changing the environment. Local Vite middleware serv
 ## Release checks
 
 Run unit, browser, and mocked cloud tests. Then use a configured staging project to send a message, view it only as the owner, collect anonymous activity, exclude an authenticated owner visit, inspect page-source Open Graph metadata, import a vCard, reuse an uploaded file, and switch languages. Live activation is incomplete until migration, server environment, and deployment are configured.
+### Inbox statuses and new-message badge
+
+After migration 008, run `supabase/migrations/009_inbox_status.sql` in the Supabase SQL Editor. It adds New / Read / Closed statuses; existing messages start as New. Owners can update only the status column, and only on their own messages. No new environment variables are needed.
+
+Messages shows a status filter and a Reply link that opens the user's email application with the sender and subject filled in. Opening the inbox does not mark all messages as read: change a message's status explicitly. The new-message badge refreshes when signing in, returning to the tab, every minute while visible, and after changing or deleting a message.

@@ -150,6 +150,8 @@ test('design kit persists and exports light theme, fonts, colors and shapes',asy
  await expect(page.locator('[data-id="project"]')).toHaveCSS('border-radius','24px');
 });
 test('edit, persist, resize, reorder, undo and export a personal page',async({page})=>{
+ // Keep source and target visible together for the native drag gesture.
+ await page.setViewportSize({width:1280,height:1000});
  await page.goto('/');
  await expect(page.locator('.bento .card')).toHaveCount(9);
  await page.locator('#card-title').fill('My real project');

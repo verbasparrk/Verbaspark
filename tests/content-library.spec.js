@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import fs from 'node:fs/promises';
 test('grouped library chooses useful defaults and works on phones',async({page})=>{
- await page.goto('/');await page.locator('[data-tab="blocks"]').click();await expect(page.getByRole('dialog',{name:'Add content',exact:true})).toBeVisible();await expect(page.locator('.content-group')).toHaveCount(5);await expect(page.locator('.choice-example')).toHaveCount(12);
+ await page.goto('/');await page.locator('[data-tab="blocks"]').click();await expect(page.getByRole('dialog',{name:'Add content',exact:true})).toBeVisible();await expect(page.locator('.content-group')).toHaveCount(5);await expect(page.locator('.choice-example')).toHaveCount(13);
  await page.screenshot({path:'test-results/content-library-desktop.png'});await page.locator('[data-add="audio"]').click();await expect(page.locator('.card.audio')).toHaveClass(/wide/);await expect(page.locator('.content-dialog')).toHaveCount(0);
  await page.locator('[data-tab="blocks"]').click();await page.locator('[data-add="contact"]').click();await expect(page.locator('#card-url')).toHaveValue('mailto:');await expect(page.locator('#compact-card')).toBeChecked();
  await page.setViewportSize({width:390,height:844});await page.locator('[data-mobile-tool="blocks"]').click();await expect(page.locator('.mobile-sheet #content-library')).toBeVisible();await page.screenshot({path:'test-results/content-library-mobile.png'});await page.locator('[data-add="catalog"]').click();await expect(page.locator('#card-title')).toHaveValue('My catalog');await expect(page.locator('#file-upload')).toBeVisible();

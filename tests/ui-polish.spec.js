@@ -4,7 +4,7 @@ test('page actions live in the menu and templates show real miniature profiles',
  await expect(page.locator('.sidebar #account')).toHaveCount(0);await expect(page.locator('.sidebar #templates')).toHaveCount(0);
  await page.screenshot({path:'test-results/refined-editor.png'});
  await page.locator('#page-menu-toggle').click();await expect(page.locator('#account')).toBeVisible();await page.locator('#templates').click();
- await expect(page.locator('.template-thumb-frame')).toHaveCount(7);
+ await expect(page.locator('.template-thumb-frame')).toHaveCount(9);
  await expect(page.frameLocator('iframe[title="Photographer thumbnail"]').locator('.intro h2')).toHaveText('Light. Places. Stories.');
  await expect(page.frameLocator('iframe[title="Developer thumbnail"]').locator('.intro h2')).toHaveText('Hello, I’m Nika.');
  await page.screenshot({path:'test-results/refined-templates.png'});

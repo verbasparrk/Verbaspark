@@ -1,12 +1,12 @@
 import {isClassicHeader} from './business-card.js';
 // Preview gestures in the DOM; commit exactly one history entry on release.
 export function bindInteractions(state,change,render){
- const grid=document.querySelector('.bento');if(!grid)return;
- const cards=[...grid.querySelectorAll('.card[draggable]')];let moving=null,slot=null,destination=null;
+ const grids=[...document.querySelectorAll('.bento')];if(!grids.length)return;
+ const cards=grids.flatMap(grid=>[...grid.querySelectorAll('.card[draggable]')]);let moving=null,slot=null,destination=null;
  const fixed=el=>isClassicHeader(state.cards.find(c=>c.id===el.dataset.id),state);
  const clear=()=>{slot?.remove();slot=null;cards.forEach(el=>el.classList.remove('dragging','drop-target'));moving=null;destination=null;};
  const place=(target,event)=>{if(!moving||target===moving)return;const r=target.getBoundingClientRect();const after=event.clientY>r.top+r.height*.65;destination={id:target.dataset.id,after};if(!slot){slot=document.createElement('div');slot.className='placement-preview '+state.cards.find(c=>c.id===moving.dataset.id).size;slot.setAttribute('aria-hidden','true');slot.innerHTML='<span>Drop here</span>';}
- const sibling=after?target.nextElementSibling:target;if(sibling!==slot)grid.insertBefore(slot,sibling);
+ const sibling=after?target.nextElementSibling:target;if(sibling!==slot)target.parentElement.insertBefore(slot,sibling);
  };
  cards.forEach(el=>{
   if(fixed(el)){el.draggable=false;el.ondragstart=e=>e.preventDefault();el.ondragover=null;el.ondrop=null;return}
@@ -14,9 +14,10 @@ export function bindInteractions(state,change,render){
   el.ondragover=e=>{if(!moving)return;e.preventDefault();e.dataTransfer.dropEffect='move';place(el,e)};
   el.ondragleave=null;el.ondragend=clear;el.ondrop=null;
  });
- grid.ondragover=e=>{if(moving)e.preventDefault()};
+ for(const grid of grids){grid.ondragover=e=>{if(moving)e.preventDefault()};
  grid.ondrop=e=>{if(!moving||!destination)return;e.preventDefault();const id=moving.dataset.id,{id:targetId,after}=destination;clear();change(()=>{const from=state.cards.findIndex(c=>c.id===id);const [card]=state.cards.splice(from,1);const to=state.cards.findIndex(c=>c.id===targetId)+(after?1:0);state.cards.splice(to,0,card)})};
- const handle=grid.querySelector('.resize');if(!handle||state.layout==='classic')return;
+ }
+ const handle=document.querySelector('.bento .resize');const grid=handle?.closest('.bento');if(!handle||['classic','editorial','showcase'].includes(state.layout))return;
  handle.title='Drag to resize · arrow keys adjust size';handle.setAttribute('aria-label','Resize selected card');
  handle.onclick=e=>{e.preventDefault();e.stopPropagation()};
  handle.onkeydown=e=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;e.preventDefault();e.stopPropagation();const id=handle.closest('.card').dataset.id;change(()=>{state.cards.find(c=>c.id===id).size=e.key==='ArrowRight'?'wide':e.key==='ArrowDown'?'tall':'small'})};

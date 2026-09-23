@@ -1,0 +1,4 @@
+.deployment/
+test-results/
+playwright-report/
+.env*

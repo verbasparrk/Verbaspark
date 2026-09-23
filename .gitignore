@@ -5,3 +5,4 @@ playwright-report/
 .env.local
 .env.*.local
 .deployment/
+.vercel/

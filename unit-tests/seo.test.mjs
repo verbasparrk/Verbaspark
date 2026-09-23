@@ -30,6 +30,8 @@ test('language variants have their own canonical URLs, alternates and structured
  const schema=JSON.parse(en.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)?.[1]);
  assert.equal(schema['@type'],'ProfilePage');assert.equal(schema.mainEntity.name,'Ana Novak');assert.equal(schema.inLanguage,'en');
  const hidden=profileMetadata({...page,profile:{...page.profile,seo:{noindex:true}}},base,'sl');assert.match(hidden,/name="robots" content="noindex,follow"/);
+ const company=profileMetadata({...page,profile:{...page.profile,seo:{entityType:'Organization'}}},base,'sl');
+ assert.equal(JSON.parse(company.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)?.[1]).mainEntity['@type'],'Organization');
 });
 
 test('sitemap lists only published profiles that permit indexing',()=>{

@@ -8,7 +8,7 @@ async function useClassic(page,keep=false){
  if(!keep)await page.locator('#keep-content').uncheck();await page.locator('#apply-template').click();
 }
 test('classic template edits, persists and exports its profile header on desktop and mobile',async({page})=>{
- await page.setViewportSize({width:1440,height:1000});await page.goto('/');await useClassic(page);
+ await page.setViewportSize({width:1440,height:1000});await page.goto('/editor/');await useClassic(page);
  await expect(page.locator('.classic-page')).toBeVisible();
  await page.locator('#card-subtitle').fill('Private chef · Maribor');await page.locator('#card-subtitle').press('Tab');
  await page.locator('#card-cta').fill('Book a dinner');await page.locator('#card-cta').press('Tab');
@@ -28,7 +28,7 @@ test('classic template edits, persists and exports its profile header on desktop
  await page.screenshot({path:'test-results/classic-mobile.png',fullPage:true});
 });
 test('classic can keep existing content, switch back to bento and undo',async({page})=>{
- await page.goto('/');const original=await page.locator('.card h2').allTextContents();await useClassic(page,true);
+ await page.goto('/editor/');const original=await page.locator('.card h2').allTextContents();await useClassic(page,true);
  expect((await page.locator('.card h2').allTextContents()).sort()).toEqual([...original].sort());
  await page.locator('[data-tab="design"]').click();await page.locator(`[data-layout-choice="${'bento'}"]`).click();
  await expect(page.locator('.classic-page')).toHaveCount(0);await expect(page.locator('.bento[data-measured]')).toBeVisible();

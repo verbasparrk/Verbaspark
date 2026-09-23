@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 test.beforeEach(async({page})=>page.addInitScript(()=>localStorage.setItem('verbaspark-welcome-dismissed','1')));
 for(const mobile of [false,true])test(`form placement and direct field editing ${mobile?'mobile':'desktop'}`,async({page})=>{
  if(mobile)await page.setViewportSize({width:390,height:844});
- await page.goto('/');
+ await page.goto('/editor/');
  const nav=page.locator(mobile?'.mobile-tools':'.primary-navigation');
  await expect(nav.locator('button')).toHaveText(['Content','Design','Settings','Messages','Analytics']);
  await nav.getByRole('button',{name:'Content',exact:true}).click();

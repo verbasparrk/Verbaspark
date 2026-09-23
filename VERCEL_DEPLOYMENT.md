@@ -17,4 +17,6 @@ The production site is [verbaspark.vercel.app](https://verbaspark.vercel.app), i
 3. In Supabase **Authentication → URL Configuration**, set **Site URL** to `https://verbaspark.vercel.app` and add `https://verbaspark.vercel.app/**` as a redirect URL. Keep the local redirect URL if you still develop locally.
 4. Verify the deployed home page, email sign-in, public route `/p/<username>`, and the published profile's sharing preview. With a test profile that has contact and analytics enabled, submit a message, inspect it in the owner's Inbox, and check that visit/click counts update. A preview deployment may need its own `APP_URL` and redirect URL if it uses a different hostname.
 
+The marketing page now lives at `/`, the editor at `/editor/`, and published profiles at `/p/<username>`. Add `https://verbaspark.vercel.app/editor/**` to Supabase Auth redirect URLs if your Auth configuration restricts callback paths. For Google Search Console verification and the dynamic sitemap, follow [SEO.md](SEO.md).
+
 GitHub runs unit, browser, mocked-cloud tests and a production build on every push to `main` and on pull requests. Those checks validate the code but do not replace the live Supabase/Vercel verification above. Vercel deploys new commits automatically.

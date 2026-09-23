@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import fs from 'node:fs/promises';
 test('Showcase cover uploads, reuses online storage and renders on the public page',async({page})=>{
- const server=await mockCloud(page);await page.goto('/');await expect(page.locator('#save-status')).toContainText('Saved online');
+ const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
  await page.locator('[data-tab=design]').click();await page.locator('[data-layout-choice=showcase]').click();
  const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=8;c.height=8;c.getContext('2d').fillRect(0,0,8,8);return c.toDataURL().split(',')[1]});
  await page.locator('#showcase-cover-upload').setInputFiles({name:'cover.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
@@ -30,7 +30,7 @@ test('contact preserves answers on failure, blocks duplicate submissions and sho
  await form.locator('button').click();await expect(form.locator('[role=status]')).toHaveText('Thank you! I reply within two working days.');await expect(form.locator('[name=message]')).toHaveValue('');expect(requests).toBe(2);
 });
 test('inbox badge, status filters and reply survive reload on desktop and mobile',async({page})=>{
- await mockCloud(page);await page.goto('/');
+ await mockCloud(page);await page.goto('/editor/');
  await expect(page.locator('.primary-navigation .inbox-badge')).toHaveText('1');
  await page.locator('[data-main-section="inbox"]').click();
  await expect(page.locator('.inbox-reply')).toHaveAttribute('href',/^mailto:visitor%40example\.com\?subject=Re%3A/);
@@ -60,12 +60,12 @@ test('public visitor switches language, sends an enquiry and generates only publ
  await page.reload();await expect(page.locator('.intro h2')).toHaveText('Pozdrav');
 });
 test('owner can read private inbox and aggregate link performance',async({page})=>{
- const server=await mockCloud(page);server.publish({name:'Alice',profile:{analytics:true},cards:[{id:'intro',type:'intro',title:'My website',url:'https://example.com'}]});await page.goto('/');await expect(page.locator('#save-status')).toContainText('Saved online');
+ const server=await mockCloud(page);server.publish({name:'Alice',profile:{analytics:true},cards:[{id:'intro',type:'intro',title:'My website',url:'https://example.com'}]});await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
  await page.locator('#page-menu-toggle').click();await page.locator('#inbox').click();await expect(page.locator('.inbox-message')).toContainText('A private enquiry');await expect(page.locator('.inbox-message a')).toHaveAttribute('href',/^mailto:visitor%40example\.com\?subject=Re%3A/);await page.locator('.profile-tool .account-close').click();
  await page.locator('#page-menu-toggle').click();await page.locator('#analytics').click();await expect(page.locator('.analytics-totals')).toHaveText('3 visits · 2 clicks');await expect(page.locator('.profile-tool table').first()).toContainText('My website');await page.setViewportSize({width:390,height:844});expect(await page.locator('.profile-tool').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
 });
 test('dashboard tracks publication, sharing and unpublished edits on desktop and mobile',async({page})=>{
- const server=await mockCloud(page);await page.goto('/');await expect(page.locator('#save-status')).toContainText('Saved online');
+ const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
  const open=async()=>{await page.locator('#page-menu-toggle').click();await page.locator('#dashboard').click()};
  await open();await expect(page.locator('#publication-status')).toHaveText('Not published');await expect(page.locator('#dashboard-sharing')).toBeHidden();await page.locator('#dashboard-edit').click();
  await page.locator('#page-menu-toggle').click();await page.locator('#account').click();await page.locator('#publish-slug').fill('alice');await page.locator('#cloud-publish').click();await page.locator('#review-continue').click();await expect.poll(()=>server.published?.slug).toBe('alice');await page.locator('.account-close').click();
@@ -107,7 +107,7 @@ async function mockCloud(page){let draft=null,published=null,fail=false,saves=0;
  });return {publish:document=>{published={slug:'alice',document}},files,get draft(){return draft},get published(){return published},get saves(){return saves},fail:value=>{fail=value},overwrite:document=>{draft={document,revision:draft.revision+1,last_save_id:'remote'}}};
 }
 test('real client autosaves, retries offline edits and keeps publication separate',async({page})=>{
- const server=await mockCloud(page);await page.goto('/');await expect(page.locator('#save-status')).toContainText('Saved online');
+ const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
  await page.locator('#card-title').fill('Auto saved project');await page.locator('#card-title').press('Tab');
  await expect.poll(()=>server.draft.document.cards.find(c=>c.id==='project').title).toBe('Auto saved project');
  await page.locator('#page-menu-toggle').click();await page.locator('#account').click();await page.locator('#publish-slug').fill('alice');await page.locator('#cloud-publish').click();await page.locator('#review-continue').click();await expect.poll(()=>server.published?.slug).toBe('alice');await page.locator('.account-close').click();
@@ -117,13 +117,13 @@ test('real client autosaves, retries offline edits and keeps publication separat
  await page.locator('.recovery-dialog .account-close').click();await page.reload();await expect(page.locator('#save-status')).toContainText('Saved online');await expect(page.locator('[data-id="project"] h2')).toHaveText('Offline change');
 });
 test('a second-device edit pauses autosave until the user resolves the conflict',async({page})=>{
- const server=await mockCloud(page);await page.goto('/');await expect(page.locator('#save-status')).toContainText('Saved online');const remote=structuredClone(server.draft.document);remote.name='Other device';server.overwrite(remote);const saved=server.saves;
+ const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');const remote=structuredClone(server.draft.document);remote.name='Other device';server.overwrite(remote);const saved=server.saves;
  await page.locator('#card-title').fill('My local version');await page.locator('#card-title').press('Tab');await expect(page.locator('#save-status')).toContainText('Choose draft');expect(server.saves).toBe(saved);expect(server.draft.document.name).toBe('Other device');
  await page.locator('#save-status').click();await page.locator('#choose-local').click();await expect(page.locator('#recovery-message')).toContainText('now saved online');expect(server.draft.document.cards.find(c=>c.id==='project').title).toBe('My local version');
 });
 
 test('attachments upload privately, load signed URLs and embed in HTML exports',async({page})=>{
- const server=await mockCloud(page);await page.goto('/');await expect(page.locator('#save-status')).toContainText('Saved online');
+ const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
  await page.locator('[data-tab="blocks"]').click();await page.locator('[data-add="document"]').click();await page.locator('#file-upload').setInputFiles({name:'cv.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\nMock attachment\n%%EOF')});
  await expect.poll(()=>server.draft?.document.cards.find(c=>c.type==='document')?.file?.path).toMatch(/^aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\/[a-f0-9]{64}\.pdf$/);
  const file=server.draft.document.cards.find(c=>c.type==='document').file;expect(file.src).toBeUndefined();expect(server.files.size).toBe(1);expect(server.published).toBeNull();

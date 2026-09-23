@@ -6,9 +6,9 @@ The editor works locally without configuration. Online features require a Supaba
 
 1. For a new Supabase project, run `supabase/INITIAL_SETUP.sql` (migrations 001–005), followed by `supabase/PROFILE_SERVICES_SETUP.sql` (006–007). Existing projects run only migrations not yet applied.
 2. Copy `.env.example` to `.env.local`. Set the project URL and **publishable (or legacy anon) key** from Supabase's Connect dialog. Never put a service-role or secret key in a Vite environment variable.
-3. In Authentication → URL Configuration, set your deployed Site URL and add your local development URL (`http://127.0.0.1:5173/`) to allowed redirects. Configure an email sender for production. Email sign-in creates an account if necessary.
-4. Restart `npm run dev`. Open **Account & publishing**, request a sign-in link, and follow it. Save a private draft, choose a username, and publish. Public URLs are `/p/username`.
-5. Build with `npm run build`. For the complete feature set, follow [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md) to deploy the repository with its `api` handlers and server environment variables; the included `vercel.json` routes public profiles through server-rendered metadata. Static-only hosting can serve basic profiles using an `/index.html` fallback, but does not enable the new server features. A local `127.0.0.1` link is not accessible to other people.
+3. In Authentication → URL Configuration, set your deployed Site URL and add your local editor URL (`http://127.0.0.1:5173/editor/`) to allowed redirects. Configure an email sender for production. Email sign-in creates an account if necessary.
+4. Restart `npm run dev`. Open `/editor/`, choose **Account & publishing**, request a sign-in link, and follow it. Save a private draft, choose a username, and publish. Public URLs are `/p/username`.
+5. Build with `npm run build`. For the complete feature set, follow [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md) to deploy the repository with its `api` handlers and server environment variables; the included `vercel.json` routes public profiles through server-rendered HTML. Static-only hosting can serve basic profiles using an `/editor/index.html` fallback, but does not enable the new server features. A local `127.0.0.1` link is not accessible to other people.
 
 ## Data behavior
 

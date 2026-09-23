@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 test.beforeEach(async({page})=>page.addInitScript(()=>localStorage.setItem('verbaspark-welcome-dismissed','1')));
 
 test('layout previews show current content and Showcase cover survives preview, reload and export',async({page})=>{
- await page.goto('/');
+ await page.goto('/editor/');
  await page.locator('.card[data-id=intro]').click();
  await page.locator('#card-title').fill('My actual name');await page.locator('#card-title').press('Tab');
  await page.locator('[data-tab=design]').click();
@@ -40,7 +40,7 @@ test('layout previews show current content and Showcase cover survives preview, 
 });
 
 test('Showcase accepts an uploaded cover without adding another card',async({page})=>{
- await page.goto('/');await page.locator('[data-tab=design]').click();await page.locator('[data-layout-choice=showcase]').click();
+ await page.goto('/editor/');await page.locator('[data-tab=design]').click();await page.locator('[data-layout-choice=showcase]').click();
  const before=await page.locator('.card').count();
  const png=await page.evaluate(()=>{const canvas=document.createElement('canvas');canvas.width=8;canvas.height=8;canvas.getContext('2d').fillRect(0,0,8,8);return canvas.toDataURL().split(',')[1]});
  await page.locator('#showcase-cover-upload').setInputFiles({name:'my-cover.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
@@ -51,7 +51,7 @@ test('Showcase accepts an uploaded cover without adding another card',async({pag
 });
 
 test('Showcase can use a gallery photo or choose an existing image from the library',async({page})=>{
- await page.goto('/');await page.locator('#templates').evaluate(el=>el.click());
+ await page.goto('/editor/');await page.locator('#templates').evaluate(el=>el.click());
  await page.locator('[data-template=photographer]').click();await page.locator('#keep-content').uncheck();await page.locator('#apply-template').click();
  const cardCount=await page.locator('.card').count();
  await page.locator('[data-tab=design]').click();await page.locator('[data-layout-choice=showcase]').click();

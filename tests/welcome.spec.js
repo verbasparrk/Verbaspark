@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 
 test('new visitor creates a personal draft and returns to it without the wizard',async({page})=>{
- await page.goto('/');await expect(page.locator('.welcome-dialog')).toBeVisible();
+ await page.goto('/editor/');await expect(page.locator('.welcome-dialog')).toBeVisible();
  await page.locator('[data-purpose="portfolio"]').click();await page.locator('#welcome-next').click();
  await expect(page.locator('[data-welcome-template="professional"]')).toHaveAttribute('aria-pressed','true');
  await page.locator('[data-welcome-template="creator"]').click();await page.locator('#welcome-next').click();
@@ -13,16 +13,16 @@ test('new visitor creates a personal draft and returns to it without the wizard'
  await expect(page.locator('#save-status')).toContainText('Saved on device');await page.reload();await expect(page.locator('.intro h2')).toHaveText('Nika Novak');await expect(page.locator('.welcome-dialog')).toHaveCount(0);
 });
 test('mobile visitor can create a business card with a photo',async({page})=>{
- await page.setViewportSize({width:390,height:844});await page.goto('/');await page.locator('[data-purpose="business"]').click();await page.locator('#welcome-next').click();await page.locator('#welcome-next').click();await page.locator('#welcome-name').fill('Ana');
+ await page.setViewportSize({width:390,height:844});await page.goto('/editor/');await page.locator('[data-purpose="business"]').click();await page.locator('#welcome-next').click();await page.locator('#welcome-next').click();await page.locator('#welcome-name').fill('Ana');
  const png=await page.evaluate(()=>{const canvas=document.createElement('canvas');canvas.width=4;canvas.height=4;return canvas.toDataURL().split(',')[1]});
  await page.locator('#welcome-photo').setInputFiles({name:'portrait.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await expect(page.locator('#welcome-photo-status')).toHaveText('Photo ready.');
  expect(await page.locator('.welcome-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);await page.screenshot({path:'test-results/welcome-mobile.png'});
  await page.locator('#welcome-next').click();await expect(page.locator('.welcome-dialog')).toHaveCount(0);await expect(page.locator('.personal-page')).toContainText('Ana');await expect(page.locator('.personal-page img').first()).toHaveAttribute('src',/^data:image\/webp/);
 });
 test('skip persists across reload',async({page})=>{
- await page.goto('/');await page.locator('#welcome-skip').click();await page.reload();await expect(page.locator('.intro h2')).toBeVisible();await expect(page.locator('.welcome-dialog')).toHaveCount(0);
+ await page.goto('/editor/');await page.locator('#welcome-skip').click();await page.reload();await expect(page.locator('.intro h2')).toBeVisible();await expect(page.locator('.welcome-dialog')).toHaveCount(0);
 });
 test('existing legacy draft bypasses the welcome flow',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('verbaspark-v1',JSON.stringify({name:'Existing owner',accent:'#448aff',gap:16,radius:12,cards:[{id:'intro',type:'intro',size:'wide',title:'Existing owner',body:'Keep my page'}]})));
- await page.goto('/');await expect(page.locator('.intro h2')).toHaveText('Existing owner');await expect(page.locator('.welcome-dialog')).toHaveCount(0);
+ await page.goto('/editor/');await expect(page.locator('.intro h2')).toHaveText('Existing owner');await expect(page.locator('.welcome-dialog')).toHaveCount(0);
 });

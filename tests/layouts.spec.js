@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import fs from 'node:fs/promises';
 test.beforeEach(async({page})=>page.addInitScript(()=>localStorage.setItem('verbaspark-welcome-dismissed','1')));
 for(const layout of ['editorial','showcase'])test(`${layout} template, persistence, mobile, export and reversible layout switching`,async({page})=>{
- await page.goto('/');await page.locator('#templates').evaluate(el=>el.click());
+ await page.goto('/editor/');await page.locator('#templates').evaluate(el=>el.click());
  await page.locator(`[data-template="${layout}"]`).click();await page.locator('#keep-content').uncheck();await page.locator('#apply-template').click();
  await expect(page.locator(`.${layout}-page`)).toBeVisible();await expect(page.locator('.card')).toHaveCount(6);
  if(layout==='showcase')await expect(page.locator('.intro .photo-viewport')).toHaveCount(1);

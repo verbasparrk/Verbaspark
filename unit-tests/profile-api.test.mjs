@@ -25,7 +25,7 @@ test('public endpoints validate, limit, exclude owner analytics and render initi
   res=response();await event(req({slug:'alice',event:'click',card:'unknown'}),res);assert.equal(res.code,400);
   res=response();await event(req({slug:'alice',event:'click',card:'intro'}),res);assert.ok(requests.some(r=>r.path==='/rest/v1/rpc/record_profile_metric'));
   delete process.env.SUPABASE_SERVICE_ROLE_KEY;
-  res=response();await page({method:'GET',query:{slug:'alice'},profileShell:'<html><head><title>App</title></head><body><div id="app"></div></body></html>'},res);assert.equal(res.code,200);assert.ok(res.value.includes('property="og:title" content="Alice portfolio"'));assert.ok(res.value.includes('id="public-profile"'));assert.ok(!res.value.includes('test-service-key'));
+  res=response();await page({method:'GET',query:{slug:'alice'},profileShell:'<html lang="en"><head><title>App</title><meta name="robots" content="noindex,follow"></head><body><div id="app"></div></body></html>'},res);assert.equal(res.code,200);assert.ok(res.value.includes('property="og:title" content="Alice portfolio"'));assert.ok(res.value.includes('id="public-profile"'));assert.ok(res.value.includes('<h1>Alice</h1>'));assert.ok(res.value.includes('class="seo-profile"'));assert.ok(!res.value.includes('name="robots" content="noindex,follow"'));assert.ok(!res.value.includes('test-service-key'));
   res=response();await cover({method:'GET',query:{slug:'alice'}},res);assert.equal(res.code,404);
  }finally{globalThis.fetch=originalFetch;for(const key of Object.keys(process.env))if(!(key in savedEnv))delete process.env[key];Object.assign(process.env,savedEnv)}
 });

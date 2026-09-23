@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 test('mobile canvas, bottom sheets, menu and full-page preview',async({page})=>{
- await page.setViewportSize({width:390,height:844});await page.goto('/');
+ await page.setViewportSize({width:390,height:844});await page.goto('/editor/');
  await expect(page.locator('.workspace>.sidebar')).toBeHidden();
  await expect(page.locator('.canvas-toolbar')).toBeHidden();
  await expect(page.locator('.mobile-tools')).toBeVisible();
@@ -21,7 +21,7 @@ test('mobile canvas, bottom sheets, menu and full-page preview',async({page})=>{
  await page.setViewportSize({width:1440,height:1000});await expect(page.locator('.workspace>.sidebar')).toBeVisible();await expect(page.locator('.mobile-sheet')).toHaveCount(0);
 });
 test('gallery batch upload, reorder, viewer and standalone export',async({page,context})=>{
- await page.goto('/');await page.locator('[data-tab="blocks"]').click();await page.locator('[data-add="gallery"]').click();
+ await page.goto('/editor/');await page.locator('[data-tab="blocks"]').click();await page.locator('[data-add="gallery"]').click();
  const image=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=50;c.height=50;const ctx=c.getContext('2d');ctx.fillStyle='#ff5500';ctx.fillRect(0,0,50,50);return c.toDataURL('image/png').split(',')[1]});
  const embedded=await page.evaluate(async image=>{const {exportImages}=await import('/src/cloud.js');const result=await exportImages({cards:[{type:'gallery',images:[{image:'data:image/png;base64,'+image,imagePath:'test/photo.png'}]}]});return result.cards[0].images[0]},image);
  expect(embedded.image).toMatch(/^data:image\/png/);expect(embedded.imagePath).toBeUndefined();
@@ -43,7 +43,7 @@ test('gallery batch upload, reorder, viewer and standalone export',async({page,c
  await page.reload();await expect(page.locator('.gallery-item')).toHaveCount(2);
 });
 test('photographer sample has a gallery and developer sample has projects',async({page})=>{
- await page.goto('/');await page.locator('#page-menu-toggle').click();await page.locator('#templates').click();await page.locator('[data-template="photographer"]').click();await page.locator('#keep-content').uncheck();await page.locator('#apply-template').click();
+ await page.goto('/editor/');await page.locator('#page-menu-toggle').click();await page.locator('#templates').click();await page.locator('[data-template="photographer"]').click();await page.locator('#keep-content').uncheck();await page.locator('#apply-template').click();
  await expect(page.locator('.page-nav strong')).toContainText('Luka Novak');await expect(page.locator('.gallery-item')).toHaveCount(3);
  await page.locator('#page-menu-toggle').click();await page.locator('#templates').click();await page.locator('[data-template="developer"]').click();await page.locator('#keep-content').uncheck();await page.locator('#apply-template').click();await expect(page.locator('.page-nav strong')).toContainText('Nika Kovač');await expect(page.locator('.card.project')).toHaveCount(1);
 });
@@ -55,7 +55,7 @@ test('link destinations normalize safely',()=>{
  expect(()=>normalizeLink('not an email','email')).toThrow();
 });
 test('add social and email cards with working destinations',async({page})=>{
- await page.goto('/');await page.locator('#add-link').click();
+ await page.goto('/editor/');await page.locator('#add-link').click();
  await page.locator('[data-link-kind="instagram"]').click();
  await page.locator('[name="destination"]').fill('instagram.com/verbaspark');
  await page.getByRole('button',{name:'Add to my page'}).click();
@@ -75,13 +75,13 @@ test('cloud document sanitization restricts styles and card markup',()=>{
  expect(page.cards[0].type).toBe('text');expect(page.cards[0].crop.x).toBe(50);expect(page.cards[0].crop.zoom).toBe(200);expect(page.design.background).toBe('#101318');expect(page.design.weight).toBe(700);
 });
 test('unconfigured cloud is explicit and does not pretend to publish',async({page})=>{
- await page.goto('/');await page.locator('#page-menu-toggle').click();await page.locator('#account').click();
+ await page.goto('/editor/');await page.locator('#page-menu-toggle').click();await page.locator('#account').click();
  await expect(page.locator('.account-dialog')).toContainText('need a Supabase connection');
  await page.keyboard.press('Escape');await expect(page.locator('.account-dialog')).toHaveCount(0);
  await page.goto('/p/example');await expect(page.locator('#app')).toHaveText('Publishing is not connected yet.');
 });
 test('templates preview without changes, preserve content, replace optionally and undo',async({page})=>{
- await page.goto('/');await page.locator('#page-menu-toggle').click();await page.locator('#templates').click();
+ await page.goto('/editor/');await page.locator('#page-menu-toggle').click();await page.locator('#templates').click();
  await page.locator('[data-template="personal"]').click();
  await expect(page.frameLocator('iframe[title="Template preview"]').locator('.intro h2')).toHaveText('A little about me.');
  await expect(page.locator('[data-id="intro"] h2')).toHaveText('Alex Morgan');
@@ -98,7 +98,7 @@ test('templates preview without changes, preserve content, replace optionally an
  await page.locator('#page-menu-toggle').click();await page.locator('#templates').click();await page.keyboard.press('Escape');await expect(page.locator('dialog')).toHaveCount(0);
 });
 test('resize gesture previews, commits once, and cancels without saving',async({page})=>{
- await page.setViewportSize({width:1440,height:1000});await page.goto('/');
+ await page.setViewportSize({width:1440,height:1000});await page.goto('/editor/');
  const handle=page.locator('.resize');await handle.hover();let box=await handle.boundingBox();
  await page.mouse.down();await expect(page.locator('.resize-preview')).toHaveCount(1);await page.mouse.move(box.x-110,box.y+box.height/2,{steps:5});
  await expect(page.locator('.resize-preview')).toContainText('Small');
@@ -111,7 +111,7 @@ test('resize gesture previews, commits once, and cancels without saving',async({
  await handle.focus();await page.keyboard.press('ArrowDown');await expect(page.locator('[data-id="project"]')).toHaveClass(/tall/);
 });
 test('upload, crop, persist and export an embedded photo',async({page})=>{
- await page.goto('/');await page.locator('[data-id="portrait"]').click();
+ await page.goto('/editor/');await page.locator('[data-id="portrait"]').click();
  const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=200;c.height=100;const ctx=c.getContext('2d');ctx.fillStyle='red';ctx.fillRect(0,0,100,100);ctx.fillStyle='blue';ctx.fillRect(100,0,100,100);return c.toDataURL('image/png').split(',')[1]});
  await page.locator('#photo-upload').setInputFiles({name:'my-photo.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
  await expect(page.locator('#photo-status')).toContainText('Photo ready');
@@ -127,7 +127,7 @@ test('upload, crop, persist and export an embedded photo',async({page})=>{
  await expect(page.locator('[data-id="portrait"] img')).toHaveCSS('transform','matrix(1.5, 0, 0, 1.5, 0, 0)');
 });
 test('design kit persists and exports light theme, fonts, colors and shapes',async({page})=>{
- await page.goto('/');await page.locator('#editor-theme').click();
+ await page.goto('/editor/');await page.locator('#editor-theme').click();
  await expect(page.locator('html')).toHaveAttribute('data-editor-theme','light');
  await page.locator('[data-tab="design"]').click();
  await page.locator('[data-page-theme="light"]').click();
@@ -153,7 +153,7 @@ test('design kit persists and exports light theme, fonts, colors and shapes',asy
 test('edit, persist, resize, reorder, undo and export a personal page',async({page})=>{
  // Keep source and target visible together for the native drag gesture.
  await page.setViewportSize({width:1280,height:1000});
- await page.goto('/');
+ await page.goto('/editor/');
  await expect(page.locator('.bento .card')).toHaveCount(9);
  await page.locator('#card-title').fill('My real project');
  await page.locator('#card-title').press('Tab');
@@ -184,7 +184,7 @@ test('edit, persist, resize, reorder, undo and export a personal page',async({pa
 });
 test('desktop and phone have no page overflow or runtime errors',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.setViewportSize({width:1440,height:1000});await page.goto('/');
+ await page.setViewportSize({width:1440,height:1000});await page.goto('/editor/');
  await page.screenshot({path:'test-results/editor-desktop.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
@@ -193,7 +193,7 @@ test('desktop and phone have no page overflow or runtime errors',async({page})=>
  expect(errors).toEqual([]);
 });
 test('inline text editing saves, supports undo, and cancels with Escape',async({page})=>{
- await page.goto('/');
+ await page.goto('/editor/');
  const title=page.locator('[data-id="project"] h2');
  await title.dblclick();
  await expect(title).toHaveAttribute('contenteditable','plaintext-only');

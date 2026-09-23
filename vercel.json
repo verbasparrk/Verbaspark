@@ -1,9 +1,15 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "functions": { "api/page.js": { "includeFiles": "dist/index.html" } },
+  "functions": { "api/page.js": { "includeFiles": "dist/editor/index.html" } },
   "rewrites": [
     { "source": "/p/:slug", "destination": "/api/page?slug=:slug" },
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+    { "source": "/examples/photographer/", "destination": "/examples/photographer/index.html" },
+    { "source": "/examples/developer/", "destination": "/examples/developer/index.html" },
+    { "source": "/examples/personal/", "destination": "/examples/personal/index.html" },
+    { "source": "/editor", "destination": "/editor/index.html" },
+    { "source": "/editor/", "destination": "/editor/index.html" },
     { "source": "/", "destination": "/index.html" }
   ]
 }

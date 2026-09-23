@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import fs from 'node:fs/promises';
 test.beforeEach(async({page})=>page.addInitScript(()=>localStorage.setItem('verbaspark-welcome-dismissed','1')));
 test('visual themes preserve content and layout, persist customization and export',async({page})=>{
- await page.goto('/');const original=await page.locator('.card').evaluateAll(cards=>cards.map(c=>[c.dataset.id,c.querySelector('h2').textContent]));
+ await page.goto('/editor/');const original=await page.locator('.card').evaluateAll(cards=>cards.map(c=>[c.dataset.id,c.querySelector('h2').textContent]));
  await page.locator('[data-tab=design]').click();
  for(const layout of ['bento','classic','editorial','showcase']){
   await page.locator(`[data-layout-choice="${layout}"]`).click();

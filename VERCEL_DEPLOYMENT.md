@@ -2,7 +2,7 @@
 
 The repository is ready for a Vercel import, but a Vercel project has not been connected yet. Vercel must build the repository itself so the `api/` functions and `vercel.json` routes are included; uploading only `dist/` does not enable contact forms, analytics, or server-rendered sharing previews.
 
-1. In Vercel, choose **Add New → Project**, import the GitHub repository `Myuzikbazar/Verbaspark`, and leave the root directory at the repository root. The included `vercel.json` runs `npm run build` and serves `dist/`.
+1. In Vercel, choose **Add New → Project**, import the GitHub repository `verbasparrk/Verbaspark`, and leave the root directory at the repository root. The included `vercel.json` runs `npm run build` and serves `dist/`.
 2. Before the production deployment, set these Vercel **Production** environment variables. Set the same values for **Preview** only if previews should use the same Supabase project. A separate Supabase project is safer for testing contact messages and analytics.
 
    | Variable | Value |

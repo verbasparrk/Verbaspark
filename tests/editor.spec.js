@@ -99,12 +99,13 @@ test('templates preview without changes, preserve content, replace optionally an
 });
 test('resize gesture previews, commits once, and cancels without saving',async({page})=>{
  await page.setViewportSize({width:1440,height:1000});await page.goto('/');
- const handle=page.locator('.resize');let box=await handle.boundingBox();
- await page.mouse.move(box.x+9,box.y+9);await page.mouse.down();await page.mouse.move(box.x-110,box.y+9,{steps:5});
+ const handle=page.locator('.resize');await handle.hover();let box=await handle.boundingBox();
+ await page.mouse.down();await expect(page.locator('.resize-preview')).toHaveCount(1);await page.mouse.move(box.x-110,box.y+box.height/2,{steps:5});
  await expect(page.locator('.resize-preview')).toContainText('Small');
  await page.mouse.up();await expect(page.locator('[data-id="project"]')).toHaveClass(/small/);
  await page.locator('#undo').click();await expect(page.locator('[data-id="project"]')).toHaveClass(/wide/);
- box=await handle.boundingBox();await page.mouse.move(box.x+9,box.y+9);await page.mouse.down();await page.mouse.move(box.x+9,box.y+100,{steps:5});
+ await handle.scrollIntoViewIfNeeded();await handle.hover();box=await handle.boundingBox();
+ await page.mouse.down();await expect(page.locator('.resize-preview')).toHaveCount(1);await page.mouse.move(box.x+box.width/2,box.y+box.height/2+100,{steps:5});
  await expect(page.locator('.resize-preview')).toContainText('Tall');await page.keyboard.press('Escape');await page.mouse.up();
  await expect(page.locator('.resize-preview')).toHaveCount(0);await expect(page.locator('[data-id="project"]')).toHaveClass(/wide/);
  await handle.focus();await page.keyboard.press('ArrowDown');await expect(page.locator('[data-id="project"]')).toHaveClass(/tall/);

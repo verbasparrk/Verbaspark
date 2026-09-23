@@ -1,6 +1,6 @@
 # Verbaspark
 
-A dark bento personal-page editor prototype. Run `npm install` then `npm run dev`. Create a production build with `npm run build`. See [SETUP.md](SETUP.md) for optional Supabase accounts, private drafts, image storage, and public page publishing. These online features require a configured Supabase project and deployment.
+A personal-page editor with Bento, Classic, Editorial, Showcase, and other visual layouts. Run `npm install` then `npm run dev`. Create a production build with `npm run build`. See [SETUP.md](SETUP.md) for Supabase accounts, private drafts, image storage, and public page publishing, and [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md) for Vercel deployment. GitHub verifies unit, browser, and mocked-cloud tests plus the production build on each push and pull request.
 
 Explore templates opens Creator, Professional, and Personal starters with a live preview. By default, applying one keeps existing content and images while updating styling, order, and sizes. Uncheck Keep my existing content to start from the sample page instead. Applying a template is a single undoable change; previews and closing the picker do not modify the page.
 

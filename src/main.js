@@ -88,7 +88,7 @@ function bind(){
  document.querySelector('#analytics')?.addEventListener('click',openAnalytics);
  document.querySelector('#file-library')?.addEventListener('click',()=>openFileLibrary(state,card=>change(()=>{if(state.cards.length>=100)throw Error('Your page can contain up to 100 blocks.');const added=newBlock(card.type,card);state.cards.push(added);selected=added.id;tab='edit'})));
 
- document.querySelector('#dashboard')?.addEventListener('click',()=>openDashboard(()=>structuredClone(state),{edit:()=>{preview=false;render()},account:()=>document.querySelector('#account').click(),publish:()=>checkBeforePublish(()=>document.querySelector('#account').click())}));
+ document.querySelector('#dashboard')?.addEventListener('click',()=>openDashboard(()=>structuredClone(state),{edit:()=>{preview=false;render()},account:()=>document.querySelector('#account').click(),publish:()=>checkBeforePublish(()=>document.querySelector('#account').click()),onlineDraft:async()=>loadRecovered(await saving.loadOnline(),{alreadySaved:true})}));
  document.querySelector('#block-hidden')?.addEventListener('change',e=>change(()=>state.cards.find(c=>c.id===selected).hidden=e.target.checked));
  document.querySelector('#duplicate-block')?.addEventListener('click',()=>{if(state.cards.length>=100){document.querySelector('#toast').textContent='Your page can contain up to 100 blocks.';return}change(()=>{const index=state.cards.findIndex(c=>c.id===selected),copy=duplicateBlock(state.cards[index]);state.cards.splice(index+1,0,copy);selected=copy.id;tab='edit'})});
  

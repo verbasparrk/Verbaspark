@@ -87,8 +87,19 @@ test('dashboard loads the online draft after another device changes it',async({p
  await expect(page.locator('.page-nav strong')).toContainText('Updated on another device');
  await expect(page.locator('#save-status')).toContainText('Saved online');
 });
+test('restricted owners see the reason and cannot publish from the editor',async({page})=>{
+ const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
+ server.restrict('Policy review needed');
+ await page.locator('#page-menu-toggle').click();await page.locator('#dashboard').click();
+ await expect(page.locator('#publication-status')).toHaveText('Restricted');
+ await expect(page.locator('#publication-detail')).toContainText('Policy review needed');
+ await expect(page.locator('#dashboard-publish')).toBeHidden();
+ await page.locator('#dashboard-account').click();
+ await expect(page.locator('.account-restriction')).toContainText('Policy review needed');
+ await expect(page.locator('#cloud-publish')).toBeDisabled();
+});
 const user={id:'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',email:'alice@example.com',aud:'authenticated',role:'authenticated',app_metadata:{provider:'email'},user_metadata:{}};
-async function mockCloud(page){let draft=null,published=null,fail=false,saves=0;const files=new Set();let inbox=[{id:'message1',name:'Visitor',email:'visitor@example.com',message:'A private enquiry',status:'new',created_at:new Date().toISOString()}];const token=['eyJhbGciOiJIUzI1NiJ9',Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url'),'mock-signature'].join('.');
+async function mockCloud(page){let draft=null,published=null,restriction=null,fail=false,saves=0;const files=new Set();let inbox=[{id:'message1',name:'Visitor',email:'visitor@example.com',message:'A private enquiry',status:'new',created_at:new Date().toISOString()}];const token=['eyJhbGciOiJIUzI1NiJ9',Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url'),'mock-signature'].join('.');
  await page.addInitScript(({user,token})=>{if(!localStorage.getItem('sb-127-auth-token'))localStorage.setItem('sb-127-auth-token',JSON.stringify({access_token:token,refresh_token:'mock-refresh',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user}))},{user,token});
  await page.route('http://127.0.0.1:59999/**',async route=>{const path=new URL(route.request().url()).pathname;const reply=body=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
   if(path==='/auth/v1/user')return reply(user);
@@ -108,12 +119,13 @@ async function mockCloud(page){let draft=null,published=null,fail=false,saves=0;
    return reply(rows);
   }
   if(path==='/rest/v1/profile_metrics')return reply([{day:new Date().toISOString().slice(0,10),event:'view',card:'',total:3},{day:new Date().toISOString().slice(0,10),event:'click',card:'intro',total:2}]);
+  if(path==='/rest/v1/platform_restrictions')return reply(restriction?[{reason:restriction}]:[]);
   if(path==='/rest/v1/drafts')return reply(draft?[draft]:[]);
   if(path==='/rest/v1/published_pages'){if(route.request().method()==='DELETE')published=null;return reply(published?[published]:[]);}
   if(path==='/rest/v1/rpc/save_draft'){if(fail)return route.abort('failed');const body=route.request().postDataJSON();if(draft&&body.expected_revision!==draft.revision)return route.fulfill({status:409,contentType:'application/json',body:JSON.stringify({code:'VS409',message:'DRAFT_CONFLICT'})});draft={document:body.draft_document,revision:(draft?.revision||0)+1,last_save_id:body.request_id};saves++;return reply(draft.revision)}
   if(path==='/rest/v1/rpc/publish_page'){const body=route.request().postDataJSON();published={slug:body.requested_slug,document:structuredClone(draft.document)};return reply(published.slug)}
   return route.fulfill({status:404,body:'Unknown mock endpoint '+path});
- });return {publish:document=>{published={slug:'alice',document}},files,get draft(){return draft},get published(){return published},get saves(){return saves},fail:value=>{fail=value},overwrite:document=>{draft={document,revision:draft.revision+1,last_save_id:'remote'}}};
+ });return {publish:document=>{published={slug:'alice',document}},files,get draft(){return draft},get published(){return published},get saves(){return saves},fail:value=>{fail=value},restrict:reason=>{restriction=reason},overwrite:document=>{draft={document,revision:draft.revision+1,last_save_id:'remote'}}};
 }
 test('real client autosaves, retries offline edits and keeps publication separate',async({page})=>{
  const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');

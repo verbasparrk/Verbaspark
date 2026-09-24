@@ -48,9 +48,10 @@ export function openDashboard(getState,{edit,account,publish,onlineDraft}){
     find('dashboard-sync-detail').textContent='Sign in to save your draft online and edit it on another device.';
     return;
    }
-   const [result,draftResult]=await Promise.all([
+   const [result,draftResult,restrictionResult]=await Promise.all([
     cloud.from('published_pages').select('slug,document').eq('owner_id',user.id).maybeSingle(),
-    cloud.from('drafts').select('revision').eq('owner_id',user.id).maybeSingle()
+    cloud.from('drafts').select('revision').eq('owner_id',user.id).maybeSingle(),
+    cloud.from('platform_restrictions').select('reason').eq('owner_id',user.id).maybeSingle()
    ]);
    if(!current())return;
    if(draftResult.error)find('dashboard-sync-detail').textContent='Could not check your online draft. Try Refresh status.';
@@ -60,6 +61,11 @@ export function openDashboard(getState,{edit,account,publish,onlineDraft}){
    }else find('dashboard-sync-detail').textContent=`Signed in as ${user.email}. Your first online save is still pending.`;
    if(result.error)throw result.error;
    const row=result.data;
+   if(!restrictionResult.error&&restrictionResult.data){
+    status.textContent='Restricted';status.dataset.state='restricted';
+    detail.textContent='Verbaspark has hidden this profile: '+restrictionResult.data.reason+' Your private draft is still available.';
+    return;
+   }
    find('dashboard-publish').hidden=false;
    if(!row){
     status.textContent='Not published';status.dataset.state='draft';

@@ -4,7 +4,7 @@ For contact forms, analytics and social previews, see [Profile services setup](P
 
 The editor works locally without configuration. Online features require a Supabase project and web hosting. Basic profiles support static hosting; contact forms, analytics and share metadata also require the server functions described above.
 
-1. For a new Supabase project, run `supabase/INITIAL_SETUP.sql` (migrations 001–005), followed by `supabase/PROFILE_SERVICES_SETUP.sql` (006–007). Existing projects run only migrations not yet applied.
+1. For a new Supabase project, run `supabase/INITIAL_SETUP.sql` (migrations 001–005), followed by `supabase/PROFILE_SERVICES_SETUP.sql` (006–007), then migrations 008–010 in order. Existing projects run only migrations not yet applied.
 2. Copy `.env.example` to `.env.local`. Set the project URL and **publishable (or legacy anon) key** from Supabase's Connect dialog. Never put a service-role or secret key in a Vite environment variable.
 3. In Authentication → URL Configuration, set your deployed Site URL and add your local editor URL (`http://127.0.0.1:5173/editor/`) to allowed redirects. Configure an email sender for production. Email sign-in creates an account if necessary.
 4. Restart `npm run dev`. Open `/editor/`, choose **Account & publishing**, request a sign-in link, and follow it. Save a private draft, choose a username, and publish. Public URLs are `/p/username`.
@@ -45,3 +45,19 @@ For automatic map display from an address, enable Google Maps Embed API and set 
 ## Hidden blocks and publication
 
 Apply `005_hidden_blocks.sql` after migration 004 before publishing pages with hidden blocks. It updates the publication function to filter hidden blocks out of the public JSON while preserving their private draft copies, and filters any already-published hidden cards. Storage policies then automatically stop allowing new public signed URLs for attachments referenced only by hidden blocks. Already-issued signed URLs retain their normal expiry. Local preview and HTML exports filter hidden blocks independently; JSON backups intentionally retain them.
+
+## Platform administration
+
+After migrations 001–009, run [010_platform_admin.sql](supabase/migrations/010_platform_admin.sql) once in the Supabase SQL Editor. It adds a private account index, administrator membership, publication restrictions and an audit log. The deployed `/admin/` page uses the existing email-link login and the server-side `SUPABASE_SERVICE_ROLE_KEY`. Add `https://verbaspark.vercel.app/admin/**` to Supabase Authentication → URL Configuration → Redirect URLs.
+
+Assign the first administrator only after that person has signed in to Verbaspark at least once. Run this separately in the SQL Editor, replacing the placeholder with their login email:
+
+```sql
+insert into public.platform_admins(user_id)
+select id from auth.users where lower(email)=lower('YOUR_ADMIN_EMAIL')
+on conflict(user_id) do nothing;
+```
+
+The SQL Editor should report one inserted row. If it reports zero, sign in with that address and retry. Do not commit a real administrator email or service-role key to the repository. Open `/admin/` after assignment. Accounts without administrator membership receive HTTP 403 from the API, even if they open the page directly.
+
+Administrators can search accounts and public profiles, see platform totals, restrict publishing, restore access and review the audit log. A restriction hides the public page and blocks republishing, including after the owner unpublishes; the owner's private draft and inbox remain private. Previously issued signed media links can remain valid until their normal one-hour expiry. Restriction actions require a reason. Administrators cannot silently edit another person's content.

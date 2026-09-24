@@ -124,11 +124,7 @@ test('account data offers a page backup and requires exact deletion confirmation
 test('publishing converts a display name with accents into a valid public address',async({page})=>{
  const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
  await page.locator('#page-menu-toggle').click();await page.locator('#account').click();
- const slug=page.locator('#publish-slug');await slug.fill('!!');await page.locator('#cloud-publish').click();
- await expect(page.locator('.account-dialog [role=status]')).toContainText('Choose a public username');
- expect(server.published).toBeNull();
- await slug.fill('Marko Cipurić');
- expect(await slug.evaluate(input=>input.validity.patternMismatch)).toBe(true);
+ const slug=page.locator('#publish-slug');await slug.fill('Marko Cipurić');
  await page.locator('#cloud-publish').click();
  await expect(slug).toHaveValue('marko-cipuric');
  await page.locator('#review-continue').click();

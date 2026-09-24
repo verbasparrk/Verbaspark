@@ -31,6 +31,14 @@ jobs:
       - name: Browser tests
         run: npm run test:browser -- --workers=1
       - name: Cloud integration tests (mocked)
-        run: npm run test:cloud -- --workers=1
+        run: |
+          set -o pipefail
+          npm run test:cloud -- --workers=1 2>&1 | tee cloud-test.log
+      - name: Report cloud test failure
+        if: failure()
+        run: |
+          if [ -f cloud-test.log ]; then
+            node -e "const fs=require('fs');const text=fs.readFileSync('cloud-test.log','utf8').split('\\n').slice(-70).join('\\n').slice(-6000).replaceAll('%','%25').replaceAll('\\r','%0D').replaceAll('\\n','%0A');console.log('::error title=Cloud test failure::'+text)"
+          fi
       - name: Production build
         run: npm run build

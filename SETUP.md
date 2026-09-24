@@ -4,7 +4,7 @@ For contact forms, analytics and social previews, see [Profile services setup](P
 
 The editor works locally without configuration. Online features require a Supabase project and web hosting. Basic profiles support static hosting; contact forms, analytics and share metadata also require the server functions described above.
 
-1. For a new Supabase project, run `supabase/INITIAL_SETUP.sql` (migrations 001–005), followed by `supabase/PROFILE_SERVICES_SETUP.sql` (006–007), then migrations 008–010 in order. Existing projects run only migrations not yet applied.
+1. For a new Supabase project, run `supabase/INITIAL_SETUP.sql` (migrations 001–005), followed by `supabase/PROFILE_SERVICES_SETUP.sql` (006–007), then migrations 008–011 in order. Existing projects run only migrations not yet applied.
 2. Copy `.env.example` to `.env.local`. Set the project URL and **publishable (or legacy anon) key** from Supabase's Connect dialog. Never put a service-role or secret key in a Vite environment variable.
 3. In Authentication → URL Configuration, set your deployed Site URL and add your local editor URL (`http://127.0.0.1:5173/editor/`) to allowed redirects. Configure an email sender for production. Email sign-in creates an account if necessary.
 4. Restart `npm run dev`. Open `/editor/`, choose **Account & publishing**, request a sign-in link, and follow it. Save a private draft, choose a username, and publish. Public URLs are `/p/username`.
@@ -20,11 +20,11 @@ The editor works locally without configuration. Online features require a Supaba
 - Publish flushes pending autosaves, then publishes exactly that database revision. A simultaneous edit from another device causes a conflict instead of publishing an unexpected version. Draft updates do not change the published snapshot. A failed username claim can still save the private draft.
 - One page and username per account. Username uniqueness is enforced in PostgreSQL. Unpublish removes the public snapshot, preserving the draft.
 - Uploaded images are content-addressed in a private storage bucket. Owner policies allow draft access; public reads require a published document reference. Viewer URLs are signed for one hour. Already issued image links remain valid until expiry after unpublishing.
-- Images are retained when replaced; orphan cleanup and account deletion UI are future work. Browser uploads are compressed before transfer.
+- Images are retained when replaced. In **Account & publishing → Account & data**, a signed-in owner can download a page backup and request account deletion. Deletion removes both private storage buckets, the Auth user, private draft, published page, Inbox messages and statistics through their database cascade. Local recovery data is cleared on the current device; local copies on other devices must be cleared there. The only administrator account cannot delete itself. An interrupted deletion can be retried; already removed files are skipped.
 
 ## Verification before opening registration
 
-Local PostgreSQL-compatible tests run all migrations and verify ownership, revision conflicts, idempotent retries and separate publication snapshots. Browser cloud tests exercise the real Supabase client against mocked HTTP responses. These do not validate your remote Supabase deployment. With two test accounts, verify owner isolation, anonymous draft/image restrictions, publish/unpublish, duplicate usernames and email delivery on your final domain.
+Local PostgreSQL-compatible tests run all migrations and verify ownership, revision conflicts, idempotent retries and separate publication snapshots. Browser cloud tests exercise the real Supabase client against mocked HTTP responses. These do not validate your remote Supabase deployment. With two test accounts, verify owner isolation, anonymous draft/image restrictions, publish/unpublish, duplicate usernames and email delivery on your final domain. Verify account deletion only with a disposable non-admin account.
 
 Run `npm run test:unit`, `npm run test:browser`, and `npm run test:cloud`. The cloud test runner uses temporary test environment values on port 5174 and does not contact a real Supabase project.
 
@@ -61,3 +61,9 @@ on conflict(user_id) do nothing;
 The SQL Editor should report one inserted row. If it reports zero, sign in with that address and retry. Do not commit a real administrator email or service-role key to the repository. Open `/admin/` after assignment. Accounts without administrator membership receive HTTP 403 from the API, even if they open the page directly.
 
 Administrators can search accounts and public profiles, see platform totals, restrict publishing, restore access and review the audit log. A restriction hides the public page and blocks republishing, including after the owner unpublishes; the owner's private draft and inbox remain private. Previously issued signed media links can remain valid until their normal one-hour expiry. Restriction actions require a reason. Administrators cannot silently edit another person's content.
+
+## Account deletion
+
+After migration 010, run [011_account_deletion.sql](supabase/migrations/011_account_deletion.sql) once in the Supabase SQL Editor. It redacts the deleted owner's email in moderation history, removes their contact rate-limit records and enables the deletion API. The delete action stays unavailable server-side until this migration is applied. Do not rerun it after success. Keep an administrator account or assign a second administrator before deleting the current one.
+
+The backup contains the current page, embedded photos and files, but does not export Inbox messages or statistics. Download it before deleting the account and keep it private. Already-issued signed media URLs can remain valid until they expire. If removal of any storage object fails, the API stops before deleting the Auth user so the owner can retry.

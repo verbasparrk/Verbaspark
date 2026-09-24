@@ -99,10 +99,44 @@ test('restricted owners see the reason and cannot publish from the editor',async
  await expect(page.locator('#cloud-publish')).toBeDisabled();
 });
 const user={id:'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',email:'alice@example.com',aud:'authenticated',role:'authenticated',app_metadata:{provider:'email'},user_metadata:{}};
+
+test('account data offers a page backup and requires exact deletion confirmation',async({page})=>{
+ await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
+ await page.locator('#page-menu-toggle').click();await page.locator('#account').click();
+ await page.locator('#cloud-account-data').click();
+ await expect(page.locator('.account-data-dialog')).toBeVisible();
+ const downloaded=page.waitForEvent('download');await page.locator('#account-backup').click();
+ const backup=JSON.parse(await fs.readFile(await (await downloaded).path(),'utf8'));
+ expect(backup.format).toBe('verbaspark-backup');expect(backup.document.cards.length).toBeGreaterThan(0);
+ await page.locator('.account-delete summary').click();
+ await page.locator('#delete-email').fill('alice@example.com');
+ await page.locator('#delete-phrase').fill('delete');
+ await expect(page.locator('#delete-account')).toBeDisabled();
+ await page.locator('#delete-phrase').fill('DELETE');
+ await expect(page.locator('#delete-account')).toBeEnabled();
+ let requestBody;
+ await page.route('**/api/account',route=>{requestBody=route.request().postDataJSON();expect(route.request().headers().authorization).toMatch(/^Bearer /);return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Account deletion is not ready yet.'})})});
+ await page.locator('#delete-account').click();
+ await expect(page.locator('#account-data-message')).toContainText('not ready yet');
+ expect(requestBody).toEqual({action:'delete',confirmEmail:'alice@example.com',confirmPhrase:'DELETE'});
+});
+
+test('successful account deletion clears this device and returns home',async({page})=>{
+ await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
+ await page.route('**/api/account',route=>route.fulfill({status:200,contentType:'application/json',body:'{"ok":true}'}));
+ await page.locator('#page-menu-toggle').click();await page.locator('#account').click();await page.locator('#cloud-account-data').click();
+ await page.locator('.account-delete summary').click();
+ await page.locator('#delete-email').fill('alice@example.com');await page.locator('#delete-phrase').fill('DELETE');
+ await page.locator('#delete-account').click();
+ await expect(page).toHaveURL('/');
+ expect(await page.evaluate(()=>localStorage.getItem('sb-127-auth-token'))).toBeNull();
+ expect(await page.evaluate(()=>new Promise((resolve,reject)=>{const request=indexedDB.open('verbaspark-recovery',1);request.onsuccess=()=>{const tx=request.result.transaction('snapshots','readonly'),count=tx.objectStore('snapshots').count();count.onsuccess=()=>resolve(count.result);count.onerror=()=>reject(count.error)}}))).toBe(0);
+});
 async function mockCloud(page){let draft=null,published=null,restriction=null,fail=false,saves=0;const files=new Set();let inbox=[{id:'message1',name:'Visitor',email:'visitor@example.com',message:'A private enquiry',status:'new',created_at:new Date().toISOString()}];const token=['eyJhbGciOiJIUzI1NiJ9',Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url'),'mock-signature'].join('.');
- await page.addInitScript(({user,token})=>{if(!localStorage.getItem('sb-127-auth-token'))localStorage.setItem('sb-127-auth-token',JSON.stringify({access_token:token,refresh_token:'mock-refresh',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user}))},{user,token});
+ await page.addInitScript(({user,token})=>{if(!sessionStorage.getItem('mock-cloud-seeded')){localStorage.setItem('sb-127-auth-token',JSON.stringify({access_token:token,refresh_token:'mock-refresh',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user}));sessionStorage.setItem('mock-cloud-seeded','1')}},{user,token});
  await page.route('http://127.0.0.1:59999/**',async route=>{const path=new URL(route.request().url()).pathname;const reply=body=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
   if(path==='/auth/v1/user')return reply(user);
+  if(path==='/auth/v1/logout')return reply({});
   if(/^\/storage\/v1\/object\/(page-files|page-images)\//.test(path)&&route.request().method()==='POST'){files.add(path.replace('/storage/v1/object/',''));return reply({Key:path})}
   if(path==='/storage/v1/object/list/page-images'&&route.request().method()==='POST')return reply([...files].filter(file=>file.startsWith('page-images/'+user.id+'/')).map(file=>({id:file,name:file.split('/').at(-1),metadata:{size:100,mimetype:'image/webp'}})));
   if(path==='/storage/v1/object/list/page-files'&&route.request().method()==='POST')return reply([]);

@@ -1,11 +1,12 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "functions": { "api/page.js": { "includeFiles": "dist/editor/index.html" }, "api/root.js": { "includeFiles": "dist/**" } },
+  "functions": { "api/page.js": { "includeFiles": "dist/editor/index.html" }, "api/root.js": { "includeFiles": "dist/**/index.html" } },
   "rewrites": [
     { "source": "/p/:slug", "destination": "/api/page?slug=:slug" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
-    { "source": "/robots.txt", "destination": "/api/robots" },
+    { "source": "/robots.txt", "destination": "/api/sitemap?format=robots" },
+    { "source": "/api/report", "destination": "/api/reports?public=1" },
     { "source": "/examples/photographer/", "destination": "/examples/photographer/index.html" },
     { "source": "/examples/developer/", "destination": "/examples/developer/index.html" },
     { "source": "/examples/personal/", "destination": "/examples/personal/index.html" },

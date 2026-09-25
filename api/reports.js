@@ -1,4 +1,5 @@
 import {admin,body,checked,fail,owner} from '../server/platform.js';
+import {submitReport} from '../server/report-submit.js';
 
 async function administrator(req,db){
  const user=await owner(req,db);
@@ -7,6 +8,7 @@ async function administrator(req,db){
  return user;
 }
 export default async function handler(req,res){
+ if(req.query?.public==='1')return submitReport(req,res);
  res.setHeader('Cache-Control','private, no-store');res.setHeader('Content-Type','application/json; charset=utf-8');
  if(!['GET','POST'].includes(req.method))return res.status(405).json({error:'Method not allowed.'});
  try{

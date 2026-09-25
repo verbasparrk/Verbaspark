@@ -1,7 +1,7 @@
-import {admin,body,checked,clientHash,fail,limit,published} from '../server/platform.js';
+import {admin,body,checked,clientHash,fail,limit,published} from './platform.js';
 
 const reasons=['spam','impersonation','harassment','unsafe','other'];
-export default async function handler(req,res){
+export async function submitReport(req,res){
  res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type','application/json; charset=utf-8');
  if(req.method!=='POST')return res.status(405).json({error:'Method not allowed.'});
  try{

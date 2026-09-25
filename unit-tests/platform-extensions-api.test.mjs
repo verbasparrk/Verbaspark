@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import report from '../api/report.js';
+import report from '../api/reports.js';
 import root from '../api/root.js';
 import domain from '../api/domain.js';
 
@@ -19,10 +19,10 @@ test('report submission validates reason, limits visitors and never exposes repo
   return json({message:'Unexpected route'},404);
  };
  try{
-  let res=response();await report({method:'POST',headers:{'x-vercel-forwarded-for':'192.0.2.1'},body:{slug:'alice',reason:'unknown'}},res);assert.equal(res.code,400);
-  res=response();await report({method:'POST',headers:{'x-vercel-forwarded-for':'192.0.2.1'},body:{slug:'alice',reason:'spam',details:'Suspicious link'}},res);assert.equal(res.value.ok,true);
+  let res=response();await report({method:'POST',query:{public:'1'},headers:{'x-vercel-forwarded-for':'192.0.2.1'},body:{slug:'alice',reason:'unknown'}},res);assert.equal(res.code,400);
+  res=response();await report({method:'POST',query:{public:'1'},headers:{'x-vercel-forwarded-for':'192.0.2.1'},body:{slug:'alice',reason:'spam',details:'Suspicious link'}},res);assert.equal(res.value.ok,true);
   const inserted=JSON.parse(requests.find(r=>r.path==='/rest/v1/profile_reports').body);assert.equal(inserted.owner_id,owner);assert.equal(inserted.reason,'spam');assert.equal(inserted.reporter_hash.length,64);
-  limited=true;res=response();await report({method:'POST',headers:{'x-vercel-forwarded-for':'192.0.2.1'},body:{slug:'alice',reason:'spam'}},res);assert.equal(res.code,429);
+  limited=true;res=response();await report({method:'POST',query:{public:'1'},headers:{'x-vercel-forwarded-for':'192.0.2.1'},body:{slug:'alice',reason:'spam'}},res);assert.equal(res.code,429);
  }finally{globalThis.fetch=original;for(const key of Object.keys(process.env))if(!(key in saved))delete process.env[key];Object.assign(process.env,saved)}
 });
 

@@ -19,4 +19,6 @@ The production site is [verbaspark.vercel.app](https://verbaspark.vercel.app), i
 
 The marketing page now lives at `/`, the editor at `/editor/`, and published profiles at `/p/<username>`. Add `https://verbaspark.vercel.app/editor/**` to Supabase Auth redirect URLs if your Auth configuration restricts callback paths. For Google Search Console verification and the dynamic sitemap, follow [SEO.md](SEO.md).
 
+For storage limits, visitor reports and custom-domain mapping, apply [migration 012](supabase/migrations/012_platform_extensions.sql) after 011. Custom domain registration additionally needs server-only `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID` and `VERCEL_TEAM_ID`; see [SETUP.md](SETUP.md). Keep the token out of `VITE_` variables and Git. Domain DNS instructions come from Vercel's API, and a domain is marked active only after Vercel confirms verification and DNS configuration.
+
 GitHub runs unit, browser, mocked-cloud tests and a production build on every push to `main` and on pull requests. Those checks validate the code but do not replace the live Supabase/Vercel verification above. Vercel deploys new commits automatically.

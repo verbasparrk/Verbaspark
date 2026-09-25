@@ -13,9 +13,9 @@ export function profileImageURL(page,slug,image,origin){
  return httpsURL(image?.image);
 }
 
-export function profileMetadata(page,url,language){
+export function profileMetadata(page,url,language,profileSlug){
  const profile=cleanProfile(page.profile),code=selectedLanguage(page,language),localized=localizePage(page,code),defaultLanguage=profile.defaultLanguage;
- const slug=new URL(url).pathname.split('/').filter(Boolean).at(-1),origin=new URL(url).origin,canonical=languageURL(url,page,code);
+ const slug=profileSlug||new URL(url).pathname.split('/').filter(Boolean).at(-1),origin=new URL(url).origin,canonical=languageURL(url,page,code);
  const title=(code===defaultLanguage&&profile.seo.title)||localized.name;
  const description=((code===defaultLanguage&&profile.seo.description)||localized.cards.find(c=>c.type==='intro'&&!c.hidden)?.body||'').replace(/\s+/g,' ').trim();
  const portrait=localized.cards.find(c=>!c.hidden&&c.type==='photo'&&c.photoRole==='portrait')||localized.cards.find(c=>!c.hidden&&c.type==='photo');
@@ -28,8 +28,8 @@ export function profileMetadata(page,url,language){
  return `<title>${escapeHTML(title)} — Verbaspark</title><meta name="description" content="${escapeHTML(description)}"><link rel="canonical" href="${escapeHTML(canonical)}">${alternates}<link rel="alternate" hreflang="x-default" href="${escapeHTML(url)}">${profile.seo.noindex?'<meta name="robots" content="noindex,follow">':''}<meta property="og:type" content="profile"><meta property="og:title" content="${escapeHTML(title)}"><meta property="og:description" content="${escapeHTML(description)}"><meta property="og:url" content="${escapeHTML(canonical)}"><meta property="og:locale" content="${code}"><meta name="twitter:card" content="${image?'summary_large_image':'summary'}">${image?`<meta property="og:image" content="${escapeHTML(image)}"><meta name="twitter:image" content="${escapeHTML(image)}">`:''}<script type="application/ld+json">${escapeScript(schema)}</script>`;
 }
 
-export function profileHTML(page,url,language){
- const code=selectedLanguage(page,language),localized=localizePage(page,code),origin=new URL(url).origin,slug=new URL(url).pathname.split('/').filter(Boolean).at(-1);
+export function profileHTML(page,url,language,profileSlug){
+ const code=selectedLanguage(page,language),localized=localizePage(page,code),origin=new URL(url).origin,slug=profileSlug||new URL(url).pathname.split('/').filter(Boolean).at(-1);
  const design=page.design||{},bg=safeColor(design.background,'#f7f8f4'),surface=safeColor(design.surface,'#ffffff'),ink=safeColor(design.text,'#17211f'),muted=safeColor(design.muted,'#576861'),border=safeColor(design.border,'#dce4dd'),accent=safeColor(page.accent,'#159979');
  let imageCount=0;
  const imageHTML=(image,alt)=>{const src=profileImageURL(page,slug,image,origin);if(!src)return '';const first=imageCount++===0;return `<img src="${escapeHTML(src)}" alt="${escapeHTML(alt||'')}" ${first?'fetchpriority="high"':'loading="lazy"'} decoding="async">`};

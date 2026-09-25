@@ -41,9 +41,9 @@ test('sitemap lists only published profiles that permit indexing',()=>{
 });
 
 test('marketing page is static and editor is excluded from search',async()=>{
- const [home,editor,robots]=await Promise.all(['../index.html','../editor/index.html','../public/robots.txt'].map(path=>readFile(new URL(path,import.meta.url),'utf8')));
+ const [home,editor,robots]=await Promise.all(['../index.html','../editor/index.html','../api/robots.js'].map(path=>readFile(new URL(path,import.meta.url),'utf8')));
  assert.match(home,/<h1/);assert.match(home,/href="\/editor\/"/);assert.match(home,/href="\/examples\/photographer\/"/);
- assert.ok(!home.includes('src="/src/main.js"'));assert.match(editor,/name="robots" content="noindex,follow"/);assert.match(robots,/Sitemap: https:\/\/verbaspark.vercel.app\/sitemap.xml/);
+ assert.ok(!home.includes('src="/src/main.js"'));assert.match(editor,/name="robots" content="noindex,follow"/);assert.match(robots,/Sitemap:.*sitemap.xml/);
 });
 
 test('image proxy refuses unreferenced and hidden published assets',async()=>{

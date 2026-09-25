@@ -48,10 +48,11 @@ export function openDashboard(getState,{edit,account,publish,onlineDraft}){
     find('dashboard-sync-detail').textContent='Sign in to save your draft online and edit it on another device.';
     return;
    }
-   const [result,draftResult,restrictionResult]=await Promise.all([
+   const [result,draftResult,restrictionResult,domainResult]=await Promise.all([
     cloud.from('published_pages').select('slug,document').eq('owner_id',user.id).maybeSingle(),
     cloud.from('drafts').select('revision').eq('owner_id',user.id).maybeSingle(),
-    cloud.from('platform_restrictions').select('reason').eq('owner_id',user.id).maybeSingle()
+    cloud.from('platform_restrictions').select('reason').eq('owner_id',user.id).maybeSingle(),
+    cloud.from('profile_domains').select('hostname,status').eq('owner_id',user.id).maybeSingle()
    ]);
    if(!current())return;
    if(draftResult.error)find('dashboard-sync-detail').textContent='Could not check your online draft. Try Refresh status.';
@@ -80,7 +81,7 @@ export function openDashboard(getState,{edit,account,publish,onlineDraft}){
    status.dataset.state=changed?'changes':'published';
    detail.textContent=changed?'Visitors see your last published version. Publish again to share these changes.':'Your current page matches the published version.';
    find('dashboard-publish').textContent=changed?'Publish changes':'Manage publication';
-   const url=location.origin+'/p/'+encodeURIComponent(row.slug);
+   const url=domainResult.data?.status==='active'?'https://'+domainResult.data.hostname+'/':location.origin+'/p/'+encodeURIComponent(row.slug);
    find('dashboard-url').value=url;find('dashboard-open').href=url;find('dashboard-sharing').hidden=false;
    find('dashboard-copy').onclick=async()=>{try{await navigator.clipboard.writeText(url);if(current())find('dashboard-message').textContent='Link copied.'}catch{if(current()){find('dashboard-url').focus();find('dashboard-url').select();find('dashboard-message').textContent='Copy the selected link manually.'}}};
    find('dashboard-qr').hidden=true;find('dashboard-download').hidden=true;

@@ -17,4 +17,4 @@ The home page is static and ships no application JavaScript. On mobile, check La
 
 Baseline on 2026-09-24: a simulated mobile Lighthouse run against the production home page scored **100/100 SEO** and **91/100 performance**, with **2.0 s LCP** and **0 CLS**. Repeat measurements after design or hosting changes; lab scores vary with network and device conditions. A real public profile should be audited once one is published.
 
-When moving to a custom domain, update `APP_URL`, the home page canonical and Open Graph URLs, `robots.txt`, and the Search Console property together. Redirect old public URLs to the new domain so only one canonical host remains.
+An active user domain serves that user's profile at `/`, with its own canonical URL, language alternates, sitemap and robots response. The platform `/p/<username>` version remains accessible but carries `noindex`. When changing the platform's primary domain itself, update `APP_URL`, the home page canonical and Open Graph URLs, and the Search Console property together.

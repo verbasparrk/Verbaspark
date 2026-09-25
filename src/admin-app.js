@@ -21,8 +21,11 @@ async function call(method='GET',input){
 function shell(email){
  app.innerHTML='<header class="admin-top"><a href="/" class="admin-brand"><span>✦</span> Verbaspark <em>ADMIN</em></a><nav><a href="/editor/">Open editor</a><button id="admin-signout">Sign out</button></nav></header><main class="admin-main"><div class="admin-intro"><div><span class="admin-kicker">PLATFORM OVERVIEW</span><h1>Admin dashboard</h1><p>Accounts, public profiles and moderation in one place.</p></div><span id="admin-email"></span></div><section id="admin-metrics" class="admin-metrics" aria-label="Platform metrics"></section><section class="admin-panel"><div class="admin-panel-head"><div><h2>Accounts & profiles</h2><p>Private drafts and messages are not shown here.</p></div><button id="admin-refresh">Refresh</button></div><div class="admin-controls"><label>Search email, name or username<input id="admin-search" type="search" maxlength="80" placeholder="Search accounts or profiles"></label><label>Status<select id="admin-filter"><option value="all">All accounts</option><option value="live">Published</option><option value="hidden">Restricted</option><option value="draft">No published page</option></select></label></div><p id="admin-table-status" role="status"></p><div class="admin-table-wrap"><table><thead><tr><th>Account</th><th>Profile</th><th>Status</th><th>Joined</th><th>Action</th></tr></thead><tbody id="admin-rows"></tbody></table></div><div class="admin-pagination"><button id="admin-prev">Previous</button><span id="admin-page"></span><button id="admin-next">Next</button></div></section><section class="admin-panel"><div class="admin-panel-head"><div><h2>Recent actions</h2><p>Every restriction and restoration is recorded.</p></div></div><div id="admin-audit" class="admin-audit"></div></section></main>';
  document.querySelector('#admin-email').textContent=email;
+ const reportSection=el('section','','admin-panel');reportSection.innerHTML='<div class="admin-panel-head"><div><h2>Profile reports</h2><p>Review visitor reports before taking action.</p></div><select id="report-filter" aria-label="Report status"><option value="open">Open</option><option value="reviewed">Reviewed</option><option value="dismissed">Dismissed</option></select></div><p id="report-status" role="status"></p><div id="report-list" class="admin-audit"></div>';
+ document.querySelector('#admin-metrics').after(reportSection);
+ document.querySelector('#report-filter').onchange=loadReports;
  document.querySelector('#admin-signout').onclick=async()=>{await cloud.auth.signOut();showLogin()};
- document.querySelector('#admin-refresh').onclick=load;
+ document.querySelector('#admin-refresh').onclick=()=>{load();loadReports()};
  const search=document.querySelector('#admin-search');search.value=query;let timer;
  search.oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{query=search.value.trim();page=1;load()},300)};
  const select=document.querySelector('#admin-filter');select.value=filter;select.onchange=()=>{filter=select.value;page=1;load()};
@@ -30,6 +33,21 @@ function shell(email){
  document.querySelector('#admin-next').onclick=()=>{page++;load()};
 }
 
+async function reportCall(method='GET',input){
+ const {data}=await cloud.auth.getSession();if(!data.session)throw Error('Sign in again.');
+ const url=new URL('/api/reports',location.origin);if(method==='GET')url.searchParams.set('status',document.querySelector('#report-filter').value);
+ const response=await fetch(url,{method,headers:{Authorization:'Bearer '+data.session.access_token,...(input?{'Content-Type':'application/json'}:{})},body:input?JSON.stringify(input):undefined,cache:'no-store'});
+ const result=await response.json().catch(()=>({error:'Reports unavailable.'}));if(!response.ok)throw Error(result.error||'Reports unavailable.');return result;
+}
+async function loadReports(){
+ const list=document.querySelector('#report-list'),status=document.querySelector('#report-status');if(!list)return;
+ status.textContent='Loading reports…';list.replaceChildren();
+ try{const {rows}=await reportCall();if(!list.isConnected)return;status.textContent=rows.length+' reports shown';
+  for(const row of rows){const item=el('div','','admin-report-item'),top=el('div','','admin-report-top'),link=el('a','/p/'+row.slug);link.href='/p/'+encodeURIComponent(row.slug);link.target='_blank';link.rel='noopener';top.append(link,el('small',date(row.created_at)));item.append(top,el('strong',row.reason),el('p',row.details||'No additional details.'));
+   if(row.status==='open'){const actions=el('div','','admin-report-actions');for(const [label,action] of [['Mark reviewed','reviewed'],['Dismiss','dismissed']]){const button=el('button',label);button.onclick=async()=>{button.disabled=true;try{await reportCall('POST',{id:row.id,status:action});loadReports()}catch(error){status.textContent=error.message;button.disabled=false}};actions.append(button)}const restrict=el('button','Restrict profile');restrict.onclick=()=>moderation({id:row.owner_id,slug:row.slug,email:'Reported profile'});actions.append(restrict);item.append(actions)}list.append(item)}
+  if(!rows.length)list.append(el('p','No reports in this category.','admin-empty'));
+ }catch(error){status.textContent=error.message}
+}
 function metric(label,value){const card=el('div','','admin-metric');card.append(el('span',label),el('strong',number(value)));return card}
 function moderation(row){
  const hidden=!!row.restriction_reason,dialog=document.createElement('dialog');
@@ -95,7 +113,7 @@ async function start(){
  if(!cloud){app.textContent='Supabase is not configured.';return}
  const {data}=await cloud.auth.getSession();
  if(!data.session){showLogin();return}
- shell(data.session.user.email||'Administrator');load();
+ shell(data.session.user.email||'Administrator');load();loadReports();
 }
 cloud?.auth.onAuthStateChange(event=>{if(event==='SIGNED_IN')start()});
 start();

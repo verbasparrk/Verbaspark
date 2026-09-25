@@ -1,5 +1,6 @@
 import {admin,body,checked,fail,owner} from '../server/platform.js';
 import {deleteStoredFiles} from '../server/account-cleanup.js';
+import {projectPath,vercel} from '../server/domains.js';
 
 export default async function handler(req,res){
  res.setHeader('Cache-Control','private, no-store');
@@ -17,6 +18,12 @@ export default async function handler(req,res){
    const {count,error}=await db.from('platform_admins').select('user_id',{count:'exact',head:true});
    if(error)throw error;
    if(count<=1)return res.status(409).json({error:'Assign another administrator before deleting the only admin account.'});
+  }
+  const domainResult=await db.from('profile_domains').select('hostname').eq('owner_id',user.id).maybeSingle();
+  if(!domainResult.error&&domainResult.data){
+   try{await vercel(projectPath(domainResult.data.hostname),'DELETE')}
+   catch(error){if(error.status!==404)throw Object.assign(Error('Could not disconnect your custom domain. Remove it first, then retry account deletion.'),{status:503})}
+   checked(await db.from('profile_domains').delete().eq('owner_id',user.id));
   }
   try{await deleteStoredFiles(db,user.id)}catch{throw Object.assign(Error('Could not finish removing your uploads. Please retry; some files may already be gone.'),{status:503})}
   const {error}=await db.auth.admin.deleteUser(user.id);

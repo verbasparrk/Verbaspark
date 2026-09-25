@@ -122,8 +122,9 @@ test('account data offers a page backup and requires exact deletion confirmation
 });
 
 test('publishing converts a display name with accents into a valid public address',async({page})=>{
- const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
+ const server=await mockCloud(page,{accountDelay:350});await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
  await page.locator('#page-menu-toggle').click();await page.locator('#account').click();
+ await expect(page.locator('.account-content')).toContainText('Loading account');
  const slug=page.locator('#publish-slug');await slug.fill('Marko Cipurić');
  await page.locator('#cloud-publish').click();
  await expect(slug).toHaveValue('marko-cipuric');
@@ -143,7 +144,7 @@ test('successful account deletion clears this device and returns home',async({pa
  expect(await page.evaluate(()=>localStorage.getItem('sb-127-auth-token'))).toBeNull();
  expect(await page.evaluate(()=>new Promise((resolve,reject)=>{const request=indexedDB.open('verbaspark-recovery',1);request.onsuccess=()=>{const tx=request.result.transaction('snapshots','readonly'),count=tx.objectStore('snapshots').count();count.onsuccess=()=>resolve(count.result);count.onerror=()=>reject(count.error)}}))).toBe(0);
 });
-async function mockCloud(page){let draft=null,published=null,restriction=null,fail=false,saves=0;const files=new Set();let inbox=[{id:'message1',name:'Visitor',email:'visitor@example.com',message:'A private enquiry',status:'new',created_at:new Date().toISOString()}];const token=['eyJhbGciOiJIUzI1NiJ9',Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url'),'mock-signature'].join('.');
+async function mockCloud(page,{accountDelay=0}={}){let draft=null,published=null,restriction=null,fail=false,saves=0;const files=new Set();let inbox=[{id:'message1',name:'Visitor',email:'visitor@example.com',message:'A private enquiry',status:'new',created_at:new Date().toISOString()}];const token=['eyJhbGciOiJIUzI1NiJ9',Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url'),'mock-signature'].join('.');
  await page.addInitScript(({user,token})=>{if(!sessionStorage.getItem('mock-cloud-seeded')){localStorage.setItem('sb-127-auth-token',JSON.stringify({access_token:token,refresh_token:'mock-refresh',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user}));sessionStorage.setItem('mock-cloud-seeded','1')}},{user,token});
  await page.route('http://127.0.0.1:59999/**',async route=>{const path=new URL(route.request().url()).pathname;const reply=body=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
   if(path==='/auth/v1/user')return reply(user);
@@ -164,9 +165,9 @@ async function mockCloud(page){let draft=null,published=null,restriction=null,fa
    return reply(rows);
   }
   if(path==='/rest/v1/profile_metrics')return reply([{day:new Date().toISOString().slice(0,10),event:'view',card:'',total:3},{day:new Date().toISOString().slice(0,10),event:'click',card:'intro',total:2}]);
-  if(path==='/rest/v1/platform_restrictions')return reply(restriction?[{reason:restriction}]:[]);
+  if(path==='/rest/v1/platform_restrictions'){if(accountDelay)await new Promise(resolve=>setTimeout(resolve,accountDelay));return reply(restriction?[{reason:restriction}]:[])}
   if(path==='/rest/v1/drafts')return reply(draft?[draft]:[]);
-  if(path==='/rest/v1/published_pages'){if(route.request().method()==='DELETE')published=null;return reply(published?[published]:[]);}
+  if(path==='/rest/v1/published_pages'){if(accountDelay)await new Promise(resolve=>setTimeout(resolve,accountDelay));if(route.request().method()==='DELETE')published=null;return reply(published?[published]:[]);}
   if(path==='/rest/v1/rpc/save_draft'){if(fail)return route.abort('failed');const body=route.request().postDataJSON();if(draft&&body.expected_revision!==draft.revision)return route.fulfill({status:409,contentType:'application/json',body:JSON.stringify({code:'VS409',message:'DRAFT_CONFLICT'})});draft={document:body.draft_document,revision:(draft?.revision||0)+1,last_save_id:body.request_id};saves++;return reply(draft.revision)}
   if(path==='/rest/v1/rpc/publish_page'){const body=route.request().postDataJSON();published={slug:body.requested_slug,document:structuredClone(draft.document)};return reply(published.slug)}
   return route.fulfill({status:404,body:'Unknown mock endpoint '+path});

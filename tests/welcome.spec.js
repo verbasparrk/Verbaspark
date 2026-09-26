@@ -22,6 +22,25 @@ test('mobile visitor can create a business card with a photo',async({page})=>{
 test('skip persists across reload',async({page})=>{
  await page.goto('/editor/');await page.locator('#welcome-skip').click();await page.reload();await expect(page.locator('.intro h2')).toBeVisible();await expect(page.locator('.welcome-dialog')).toHaveCount(0);
 });
+
+test('skipped example leads to a personal draft and a visible mobile publish flow',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('/editor/');await page.locator('#welcome-skip').click();
+ await expect(page.locator('.starter-notice')).toContainText('example page');
+ await expect(page.locator('#publish-entry')).toBeVisible();
+ await page.locator('#start-my-page').click();
+ await page.locator('#welcome-next').click();await page.locator('#welcome-next').click();
+ await page.locator('#welcome-name').fill('Maja Novak');await page.locator('#welcome-next').click();
+ await expect(page.locator('.starter-notice')).toHaveCount(0);
+ await expect(page.locator('.intro h2')).toHaveText('Maja Novak');
+ await page.locator('#publish-entry').click();
+ await expect(page.locator('.publish-review')).toBeVisible();
+ await expect(page.locator('.publish-review')).not.toContainText('Alex Morgan example');
+ await page.locator('.review-close').click();
+ await page.locator('[data-mobile-tool="dashboard"]').click();
+ await expect(page.locator('.page-dashboard')).toContainText('Maja Novak');
+ await expect(page.locator('#dashboard-publish')).toBeVisible();
+});
 test('existing legacy draft bypasses the welcome flow',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('verbaspark-v1',JSON.stringify({name:'Existing owner',accent:'#448aff',gap:16,radius:12,cards:[{id:'intro',type:'intro',size:'wide',title:'Existing owner',body:'Keep my page'}]})));
  await page.goto('/editor/');await expect(page.locator('.intro h2')).toHaveText('Existing owner');await expect(page.locator('.welcome-dialog')).toHaveCount(0);

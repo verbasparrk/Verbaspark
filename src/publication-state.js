@@ -4,7 +4,7 @@ import {fileTypes} from './files.js';
 // Compare visible content, ignoring editor preferences, generated IDs and signed URL expiry.
 export async function publicationFingerprint(value,owner){
  const page=cleanPage({...value,cards:value.cards.filter(card=>!card.hidden)});
- delete page.editorTheme;delete page.onboarding;
+ delete page.editorTheme;delete page.onboarding;delete page.starterSample;
  const hash=async source=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',await (await fetch(source)).arrayBuffer()))].map(n=>n.toString(16).padStart(2,'0')).join('');
  for(const card of page.cards){
   delete card.id;delete card.hidden;

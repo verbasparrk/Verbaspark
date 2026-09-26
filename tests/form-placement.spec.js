@@ -4,8 +4,9 @@ for(const mobile of [false,true])test(`form placement and direct field editing $
  if(mobile)await page.setViewportSize({width:390,height:844});
  await page.goto('/editor/');
  const nav=page.locator(mobile?'.mobile-tools':'.primary-navigation');
- await expect(nav.locator('button')).toHaveText(['Content','Design','Settings','Messages','Analytics']);
- await nav.getByRole('button',{name:'Content',exact:true}).click();
+ await expect(nav.locator('button')).toHaveText(mobile?['Content','Design','My page','Inbox','Stats']:['My page','Inbox','Stats']);
+ if(mobile)await nav.getByRole('button',{name:'Content',exact:true}).click();
+ else await page.locator('[data-tab="blocks"]').click();
  await page.locator('[data-add="contact-form"]').click();
  await page.locator('#save-contact-form').click();
  await page.locator('[data-edit-contact-field="email"]').click();
@@ -32,6 +33,7 @@ for(const mobile of [false,true])test(`form placement and direct field editing $
   await expect(page.locator('#contact-position')).toHaveValue('intro');
  }
  await expect(page.locator('body')).toHaveJSProperty('scrollWidth',await page.evaluate(()=>innerWidth));
- await nav.getByRole('button',{name:'Settings',exact:true}).click();
+ if(mobile){await page.locator('.mobile-menu-toggle').click();await page.getByRole('button',{name:'Profile settings',exact:true}).click()}
+ else{await page.locator('#page-menu-toggle').click();await page.locator('#profile-settings').click()}
  await expect(page.locator('.profile-settings')).toBeVisible();
 });

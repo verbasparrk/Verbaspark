@@ -29,4 +29,4 @@ export function newBlock(type,overrides={}){
   ...(type==='photo'?{image:'',photoRole:'content'}:{}),...overrides};
 }
 export function duplicateBlock(card){const copy=structuredClone(card);copy.id=crypto.randomUUID();copy.title=card.title+' (copy)';if(copy.type==='photo')copy.photoRole='content';return copy}
-export function publicDocument(state){return {...state,cards:state.cards.filter(c=>c.hidden!==true)}}
+export function publicDocument(state){const {starterSample,...page}=state;return {...page,cards:state.cards.filter(c=>c.hidden!==true)}}

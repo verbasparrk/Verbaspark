@@ -9,7 +9,7 @@ export function openDashboard(getState,{edit,account,publish,onlineDraft}){
  dialog.innerHTML=`<button class="account-close" aria-label="Close My page">${icon('close')}</button>
   <span class="eyebrow">YOUR WORKSPACE</span><h2 id="dashboard-heading">My page</h2>
   <section class="dashboard-summary"><span id="publication-status" class="publication-status">Checking publication…</span><h3 id="dashboard-name"></h3><p id="publication-detail"></p></section>
-  <div class="dashboard-actions"><button id="dashboard-edit" class="primary">${icon('edit')} Edit page</button><button id="dashboard-publish">${icon('arrow')} Publish page</button></div>
+  <div class="dashboard-actions"><button id="dashboard-edit">${icon('edit')} Edit page</button><button id="dashboard-publish" class="primary">${icon('arrow')} Publish page</button></div>
   <section class="dashboard-sync"><h3>Work across devices</h3><p id="dashboard-sync-detail">Checking your online draft…</p><button id="dashboard-load" hidden>Load online draft</button><p class="hint">On another device, sign in with the same email. Your current device version stays in Save & recovery when you load the online draft.</p></section>
   <section id="dashboard-sharing" hidden><h3>Share your page</h3><label>Public link<input id="dashboard-url" readonly></label><div class="dashboard-actions"><a id="dashboard-open" target="_blank" rel="noopener">${icon('arrow')} Open profile</a><button id="dashboard-copy">${icon('copy')} Copy link</button></div><details class="dashboard-qr"><summary>QR code for sharing</summary><div class="qr-content"><img id="dashboard-qr" alt="QR code linking to your published profile" width="224" height="224"><a id="dashboard-download" download="verbaspark-qr.png">${icon('download')} Download QR code</a></div></details></section>
   <p id="dashboard-message" role="status"></p><div class="dashboard-footer"><button id="dashboard-account">Account & publishing</button><button id="dashboard-refresh">${icon('refresh')} Refresh status</button></div>`;
@@ -44,10 +44,14 @@ export function openDashboard(getState,{edit,account,publish,onlineDraft}){
    const user=data.session?.user;
    if(!user){
     status.textContent='Local draft';status.dataset.state='draft';
-    detail.textContent='Your page is saved on this device. Sign in through Account & publishing to publish it.';
+    detail.textContent='This draft is saved only on this device. Sign in to publish it and save it online.';
     find('dashboard-sync-detail').textContent='Sign in to save your draft online and edit it on another device.';
+    find('dashboard-publish').hidden=false;
+    find('dashboard-publish').textContent='Sign in & publish';
+    find('dashboard-account').textContent='Sign in or create account';
     return;
    }
+   find('dashboard-account').textContent='Account & publishing';
    const [result,draftResult,restrictionResult,domainResult]=await Promise.all([
     cloud.from('published_pages').select('slug,document').eq('owner_id',user.id).maybeSingle(),
     cloud.from('drafts').select('revision').eq('owner_id',user.id).maybeSingle(),

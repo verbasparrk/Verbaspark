@@ -146,7 +146,7 @@
 .primary-navigation button{display:flex;align-items:center;gap:8px;padding:9px 14px;font-size:12px;border-color:transparent}
 .primary-navigation button[aria-current=page]{background:#448aff20;border-color:var(--accent)}
 [data-editor-theme=light] .primary-navigation{background:#fff;color:#243a58}
-@media(min-width:701px){.workspace{height:calc(100dvh - 128px)}}
+@media(min-width:701px){.workspace{height:calc(100dvh - 128px)}.workspace-menu-items{top:calc(100% + 76px)}}
 .placed-contact-form{margin:24px 0;min-width:0}.form-placement-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px}.form-placement-controls button{padding:10px;font-size:12px}.form-placement-controls label{margin:0;flex:1;min-width:140px}.form-placement-controls select{width:100%;max-width:100%;margin-top:5px}.form-drag-handle{cursor:grab}.editing-contact-form [data-edit-contact-field]{cursor:pointer;padding:8px;border:1px dashed transparent;border-radius:8px}.editing-contact-form [data-edit-contact-field]:hover,.editing-contact-form [data-edit-contact-field]:focus-visible{border-color:var(--accent)}.editing-contact-form form input,.editing-contact-form form textarea,.editing-contact-form form select,.editing-contact-form form button{pointer-events:none}.form-end-drop{display:none}.moving-contact-form .form-end-drop{display:block;padding:24px;text-align:center;border:2px dashed var(--accent);border-radius:10px}.moving-contact-form .canvas .card{outline:1px dashed var(--accent)}
 @media(max-width:700px){.primary-navigation{display:none}.topbar .top-actions #preview{display:inline-flex;min-height:40px}.mobile-tools{gap:2px;padding-left:4px;padding-right:4px}.mobile-tools button{flex-direction:column;gap:4px;min-width:0;font-size:10px}.mobile-tools button>span{font-size:10px;color:inherit}.form-placement-controls{gap:8px}.form-placement-controls select{font-size:16px}}
 
@@ -197,3 +197,32 @@
 [data-editor-theme=light] .layout-picker legend,[data-editor-theme=light] .showcase-cover-settings legend{color:#243a58}
 .profile-report-button{display:block;margin:24px auto 12px;background:transparent;border:0;color:var(--muted,#667);font-size:12px;text-decoration:underline;cursor:pointer}.profile-report-dialog{width:min(460px,calc(100% - 24px));border:1px solid #495363;border-radius:16px;padding:26px;background:#1a2028;color:#e9edf2;box-shadow:0 22px 70px #0008}.profile-report-dialog::backdrop{background:#0a101bcc}.profile-report-dialog h2{margin:0 0 10px;font-size:24px}.profile-report-dialog p{font-size:13px;line-height:1.5;color:#b4c2d0}.profile-report-dialog label{display:block;margin-top:16px;font-size:13px}.profile-report-dialog select,.profile-report-dialog textarea{display:block;width:100%;margin-top:7px;padding:11px;border:1px solid #596779;border-radius:8px;background:#111820;color:#fff;font:inherit}.profile-report-dialog .report-actions{display:flex;justify-content:end;gap:9px;margin-top:18px}.profile-report-dialog button{padding:10px 15px;border:1px solid #596779;border-radius:8px;background:#25313d;color:#fff}.profile-report-dialog [type=submit]{background:#43c9ae;color:#10211e;font-weight:700}.profile-report-dialog .form-trap{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
 .account-actions{flex-wrap:wrap}.profile-tool [data-domain-content] h3{overflow-wrap:anywhere}.profile-tool [data-domain-content] p{overflow-wrap:anywhere}.profile-tool [data-domain-content] button{margin:6px 8px 6px 0}.profile-tool .domain-remove{display:block;margin-top:20px!important;border-color:#b97878;color:#ffcaca}
+
+/* Keep the sample unmistakable while the editor still contains Alex Morgan's page. */
+.starter-notice{max-width:1110px;margin:0 auto 12px;padding:15px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid #73583f;border-radius:10px;background:#2b241d;color:#f7e7d0}
+.starter-notice strong{font-size:13px}.starter-notice p{margin:4px 0 0;color:#d9c7ae;font-size:12px;line-height:1.5}
+.starter-notice button{display:flex;align-items:center;justify-content:center;gap:7px;flex-shrink:0;padding:10px 13px;border-color:#b99164;background:#4c3824;color:#fff2de;font-size:12px;font-weight:700}
+.starter-notice .ui-icon{width:16px;height:16px}
+[data-editor-theme=light] .starter-notice{background:#fff8ed;color:#483522;border-color:#d9b78a}
+[data-editor-theme=light] .starter-notice p{color:#71583e}
+[data-editor-theme=light] .starter-notice button{background:#f7e4c6;color:#3b2b1a}
+@media(min-width:701px){.workspace{height:calc(100dvh - 128px)}}
+@media(max-width:700px){
+ .topbar:has(.workspace-menu){height:82px;min-height:82px;display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;grid-template-rows:42px 22px;gap:2px 6px;padding:8px 10px}
+ .topbar .brand{grid-column:1;grid-row:1;min-width:0;white-space:nowrap;font-size:16px}
+ .topbar .brand>span:first-child{font-size:23px}
+ .topbar .top-actions{display:contents}
+ .topbar .top-actions #preview{grid-column:2;grid-row:1;min-height:40px;padding:7px 8px}
+ .topbar .top-actions #publish-entry{grid-column:3;grid-row:1;display:inline-flex!important;min-height:40px;padding:7px 9px;font-size:11px}
+ .topbar .top-actions #publish-entry .ui-icon{display:none}
+ .topbar .top-actions .mobile-menu-toggle{grid-column:4;grid-row:1;min-width:40px}
+ .topbar .top-actions #save-status{grid-column:1/-1;grid-row:2;display:inline-flex;justify-self:start;min-height:20px;max-width:none;padding:0 5px;margin:0;border:0;background:transparent;font-size:10px}
+ .starter-notice{margin:12px 12px 6px;padding:12px;flex-direction:column;align-items:stretch;gap:9px}
+ .starter-notice button{min-height:40px}
+ .mobile-preview .topbar:has(.workspace-menu){height:54px;min-height:54px;grid-template-rows:40px}
+ .mobile-preview .topbar .top-actions #save-status{display:none}
+}
+@media(max-width:360px){
+ .topbar .top-actions #preview{font-size:0;min-width:40px}
+ .topbar .top-actions #preview .ui-icon{width:18px;height:18px}
+}

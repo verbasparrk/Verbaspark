@@ -1,4 +1,8 @@
 import {icon} from './icons.js';
+export function starterNotice(state){
+ if(!state.starterSample||state.name!=='Alex Morgan')return '';
+ return `<section class="starter-notice" aria-label="Example page"><div><strong>This is an example page.</strong><p>Alex Morgan and these cards are sample content. Add your own details before publishing.</p></div><button id="start-my-page" type="button">Set up my page ${icon('arrow')}</button></section>`;
+}
 export function firstSteps(state){const progress=state.onboarding||{};const steps=[['name','Your name'],['photo','A photo'],['link','A link'],['preview','Preview']];if(progress.dismissed||steps.every(([id])=>progress[id]))return '';
  return `<section class="first-steps" aria-label="Getting started"><div><strong>Make yourself at home.</strong><span>${steps.filter(([id])=>progress[id]).length} of 4 ready</span><button id="dismiss-steps" aria-label="Dismiss getting started">${icon('close')}</button></div><div class="first-step-buttons">${steps.map(([id,label])=>`<button data-first-step="${id}" ${progress[id]?'disabled':''}>${icon(progress[id]?'check':{name:'intro',photo:'photo',link:'link',preview:'eye'}[id])}<span>${label}</span></button>`).join('')}</div></section>`;
 }

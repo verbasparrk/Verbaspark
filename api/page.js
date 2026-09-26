@@ -6,7 +6,11 @@ export async function renderProfile(req,res,page,url){
  const slug=page.slug,code=selectedLanguage(page.document,req.query?.lang);
  const shell=req.profileShell||await readFile(new URL('../dist/editor/index.html',import.meta.url),'utf8');
  const meta=profileMetadata(page.document,url,code,slug),boot=escapeScript({slug,document:page.document});
- const html=shell.replace(/<title>[\s\S]*?<\/title>/,'').replace(/<meta name="robots" content="noindex,follow">/,'').replace(/<html lang="[^"]*">/,`<html lang="${code}">`).replace('</head>',meta+'</head>').replace('<div id="app"></div>',`<div id="app">${profileHTML(page.document,url,code,slug)}</div><script id="public-profile" type="application/json">${boot}</script>`);
+ // Keep the server-rendered content available to browsers without JavaScript and
+ // search crawlers, but avoid showing a different fallback layout before the
+ // interactive profile replaces it. Reveal it if hydration cannot finish.
+ const hydration=`<style>html.profile-hydrating #app>.seo-profile{display:none}html.profile-hydrating #app::before{content:'Opening profile…';display:block;min-height:100vh;padding:clamp(20px,5vw,70px);font:600 18px system-ui,sans-serif;color:#17211f;background:#f7f8f4}</style><script>document.documentElement.classList.add('profile-hydrating');window.__profileHydrationTimeout=setTimeout(()=>document.documentElement.classList.remove('profile-hydrating'),20000)</script>`;
+ const html=shell.replace(/<title>[\s\S]*?<\/title>/,'').replace(/<meta name="robots" content="noindex,follow">/,'').replace(/<html lang="[^"]*">/,`<html lang="${code}">`).replace('</head>',meta+hydration+'</head>').replace('<div id="app"></div>',`<div id="app">${profileHTML(page.document,url,code,slug)}</div><script id="public-profile" type="application/json">${boot}</script>`);
  return res.status(200).send(html);
 }
 

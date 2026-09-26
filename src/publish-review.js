@@ -10,7 +10,7 @@ export function reviewPage(state){
  const issues=[],cards=state.cards.filter(c=>!c.hidden);
  const add=(severity,message,card,field)=>issues.push({severity,message,cardId:card?.id,label:card?.title||'Untitled '+(card?.type||'page'),field});
  if(!state.name?.trim())add('error','Give your page a name.',null,'page-name');
- if(state.starterSample&&state.name==='Alex Morgan')add('warning','This is the Alex Morgan example. Replace the sample name and content before sharing.',null,'page-name');
+ if(state.name?.trim()==='Alex Morgan')add('warning',state.starterSample?'This is the Alex Morgan example. Replace the sample name and content before sharing.':'Your page name is still Alex Morgan. Check it in Design before sharing.',null,'page-name');
  if(!cards.length)add('error','Add or show at least one block.',null,'blocks');
  for(const card of cards){
   const title=card.title?.trim(),body=card.body?.trim();

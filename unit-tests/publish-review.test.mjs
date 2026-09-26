@@ -12,3 +12,8 @@ test('review distinguishes suggestions from blockers and permits simple text pro
  assert.equal(reviewPage({name:'Alex',cards:[{type:'link',title:'Sample',url:'https://example.com'}]}).warnings,1);
  assert.equal(reviewPage({name:'',cards:[]}).errors,2);
 });
+test('review flags an unchanged example page name even in an older draft',()=>{
+ const report=reviewPage({name:'Alex Morgan',cards:[{id:'intro',type:'intro',title:'Entertainment Technical Manager',body:'My work'}]});
+ assert.equal(report.errors,0);
+ assert.ok(report.issues.some(issue=>issue.field==='page-name'&&issue.message.includes('Alex Morgan')));
+});

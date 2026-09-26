@@ -55,7 +55,7 @@ test('link destinations normalize safely',()=>{
  expect(()=>normalizeLink('not an email','email')).toThrow();
 });
 test('add social and email cards with working destinations',async({page})=>{
- await page.goto('/editor/');await page.locator('#add-link').click();
+ await page.goto('/editor/',{waitUntil:'domcontentloaded'});await page.locator('#add-link').click();
  await page.locator('[data-link-kind="instagram"]').click();
  await page.locator('[name="destination"]').fill('instagram.com/verbaspark');
  await page.getByRole('button',{name:'Add to my page'}).click();
@@ -67,7 +67,7 @@ test('add social and email cards with working destinations',async({page})=>{
  await expect(page.locator('.card.selected a')).toHaveAttribute('href','mailto:hello@verbaspark.com');
  await page.locator('#preview').click();
  await expect(page.locator('a[href="mailto:hello@verbaspark.com"]')).toBeVisible();
- await page.reload();await expect(page.locator('.bento .card')).toHaveCount(11);
+ await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('.bento .card')).toHaveCount(11);
 });
 import {cleanPage} from '../src/page-data.js';
 test('cloud document sanitization restricts styles and card markup',()=>{

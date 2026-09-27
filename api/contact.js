@@ -1,7 +1,13 @@
 import {validateAnswers} from '../src/contact-fields.js';
 import {admin,body,checked,published,clientHash,limit,fail} from '../server/platform.js';
 import {processContactNotifications} from '../server/notifications.js';
-export default async function handler(req,res){res.setHeader('Cache-Control','no-store');if(req.method!=='POST')return res.status(405).end();try{
+export default async function handler(req,res){res.setHeader('Cache-Control','no-store');
+ if(req.method==='GET'){
+  if(!process.env.CRON_SECRET||req.headers.authorization!==`Bearer ${process.env.CRON_SECRET}`)return res.status(401).end();
+  try{return res.status(200).json(await processContactNotifications(admin(),{batchSize:10}))}
+  catch(error){console.error('Notification queue failed:',error);return res.status(503).json({error:'Notification queue unavailable.'})}
+ }
+ if(req.method!=='POST')return res.status(405).end();try{
  const input=body(req),db=admin(),page=await published(db,input.slug);
  if(!page.document.profile?.contactForm)return res.status(403).json({error:'This profile is not accepting messages.'});
  if(input.website)return res.status(200).json({ok:true});

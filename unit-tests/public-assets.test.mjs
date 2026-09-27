@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import file from '../api/file.js';
 import image from '../api/image.js';
 
 test('public asset routes serve only visible files and showcase images referenced by the published owner',async()=>{
@@ -17,11 +16,11 @@ test('public asset routes serve only visible files and showcase images reference
  };
  const response=()=>({code:200,headers:{},setHeader(key,value){this.headers[key]=value},status(value){this.code=value;return this},send(value){this.value=value;return this},end(){}});
  try{
-  let res=response();await file({method:'GET',query:{slug:'ana',path:filePath}},res);assert.equal(res.code,302);assert.match(res.headers.Location,/storage\/v1\/object\/sign\/page-files/);
+  let res=response();await image({method:'GET',query:{slug:'ana',path:filePath,kind:'file'}},res);assert.equal(res.code,302);assert.match(res.headers.Location,/storage\/v1\/object\/sign\/page-files/);
   res=response();await image({method:'GET',query:{slug:'ana',path:imagePath}},res);assert.equal(res.code,200);assert.equal(res.headers['Content-Type'],'image/webp');
   const storageCount=requests.filter(path=>path.startsWith('/storage/')).length;
-  res=response();await file({method:'GET',query:{slug:'ana',path:owner+'/'+'c'.repeat(64)+'.pdf'}},res);assert.equal(res.code,404);
-  hidden=true;res=response();await file({method:'GET',query:{slug:'ana',path:filePath}},res);assert.equal(res.code,404);
+  res=response();await image({method:'GET',query:{slug:'ana',path:owner+'/'+'c'.repeat(64)+'.pdf',kind:'file'}},res);assert.equal(res.code,404);
+  hidden=true;res=response();await image({method:'GET',query:{slug:'ana',path:filePath,kind:'file'}},res);assert.equal(res.code,404);
   assert.equal(requests.filter(path=>path.startsWith('/storage/')).length,storageCount);
  }finally{globalThis.fetch=originalFetch;for(const key of Object.keys(process.env))if(!(key in before))delete process.env[key];Object.assign(process.env,before)}
 });

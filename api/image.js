@@ -1,11 +1,22 @@
 import {publicReader,published} from '../server/platform.js';
+import {fileTypes} from '../src/files.js';
 
 export default async function handler(req,res){
  res.setHeader('X-Content-Type-Options','nosniff');
  if(!['GET','HEAD'].includes(req.method))return res.status(405).end();
  try{
-  const {slug,path}=req.query;if(typeof path!=='string'||!/^[a-f0-9-]{36}\/[a-f0-9]{64}\.webp$/.test(path))return res.status(404).end();
+  const {slug,path}=req.query,kind=req.query.kind==='file'?'file':'image';
+  if(typeof path!=='string'||!(kind==='file'?/^[a-f0-9-]{36}\/[a-f0-9]{64}\.[a-z0-9]+$/:/^[a-f0-9-]{36}\/[a-f0-9]{64}\.webp$/).test(path))return res.status(404).end();
   const db=publicReader(),page=await published(db,slug);
+  if(kind==='file'){
+   const file=page.document.cards?.filter(card=>!card.hidden).find(card=>card.file?.path===path)?.file;
+   const mime=fileTypes[path.split('.').pop()];
+   if(!file||!path.startsWith(page.owner_id+'/')||!mime||file.mime!==mime)return res.status(404).end();
+   const signed=await db.storage.from('page-files').createSignedUrl(path,300);
+   if(signed.error||!signed.data?.signedUrl)return res.status(404).end();
+   res.setHeader('Cache-Control','no-store');res.setHeader('Location',signed.data.signedUrl);
+   return res.status(302).end();
+  }
   const images=[...(page.document.cards?.filter(card=>!card.hidden).flatMap(card=>[card,...(card.images||[])])||[]),...(page.document.showcaseCover?[page.document.showcaseCover]:[])];
   if(!path.startsWith(page.owner_id+'/')||!images.some(image=>image.imagePath===path))return res.status(404).end();
   const {data,error}=await db.storage.from('page-images').download(path);

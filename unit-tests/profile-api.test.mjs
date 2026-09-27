@@ -18,7 +18,8 @@ test('public endpoints validate, limit, exclude owner analytics and render initi
  const response=()=>({code:200,headers:{},setHeader(key,value){this.headers[key]=value},status(code){this.code=code;return this},json(value){this.value=value;return this},send(value){this.value=value;return this},end(){}});
  const req=body=>({method:'POST',headers:{'x-vercel-forwarded-for':'192.0.2.10'},body});
  try{
-  let res=response();await contact(req({slug:'alice',name:'Guest',email:'bad',message:'Hi'}),res);assert.equal(res.code,400);
+  let res=response();await contact({method:'GET',headers:{}},res);assert.equal(res.code,401);
+  res=response();await contact(req({slug:'alice',name:'Guest',email:'bad',message:'Hi'}),res);assert.equal(res.code,400);
   res=response();await contact(req({slug:'alice',name:'Guest',email:'guest@example.com',message:'Hi'}),res);assert.equal(res.value.ok,true);assert.ok(requests.some(r=>r.path==='/rest/v1/contact_messages'));
   limited=true;res=response();await contact(req({slug:'alice',name:'Guest',email:'guest@example.com',message:'Hi'}),res);assert.equal(res.code,429);limited=false;
   contactOn=false;res=response();await contact(req({slug:'alice',name:'Guest',email:'guest@example.com',message:'Hi'}),res);assert.equal(res.code,403);

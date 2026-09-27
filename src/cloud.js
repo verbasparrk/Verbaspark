@@ -40,7 +40,7 @@ export async function resolveImages(document){
 }
 export async function resolvePublicImages(document,slug){
  const items=[...(document.cards||[]).flatMap(c=>[c,...(c.images||[])]),...(document.showcaseCover?[document.showcaseCover]:[])];
- const endpoint=(kind,path='')=>new URL('/api/'+kind+'?slug='+encodeURIComponent(slug)+(path?'&path='+encodeURIComponent(path):''),globalThis.location.origin).href;
+ const endpoint=(kind,path='')=>new URL('/api/'+(kind==='file'?'image':kind)+'?'+(kind==='file'?'kind=file&':'')+'slug='+encodeURIComponent(slug)+(path?'&path='+encodeURIComponent(path):''),globalThis.location.origin).href;
  for(const item of items)if(item.imagePath)item.image=endpoint('image',item.imagePath);
  if(document.profile?.seo?.imagePath)document.profile.seo.image=endpoint('cover');
  for(const item of items)if(item.file?.path)item.file.src=endpoint('file',item.file.path);

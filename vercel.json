@@ -2,7 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": { "api/page.js": { "includeFiles": "dist/editor/index.html" }, "api/root.js": { "includeFiles": "dist/**/index.html" } },
-  "crons": [{ "path": "/api/notifications", "schedule": "0 8 * * *" }],
+  "crons": [{ "path": "/api/contact", "schedule": "0 8 * * *" }],
   "rewrites": [
     { "source": "/p/:slug", "destination": "/api/page?slug=:slug" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },

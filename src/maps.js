@@ -17,17 +17,46 @@ export function mapEmbedCoordinates(raw){
  return [pair[1],pair[0]];
 }
 export function addressEmbed(address,key=import.meta.env?.VITE_GOOGLE_MAPS_EMBED_KEY){return address?.trim()&&key?'https://www.google.com/maps/embed/v1/place?'+new URLSearchParams({key,q:address.trim()}):''}
-export function mapTiles(lng,lat,zoom=14){
+export function mapTiles(lng,lat,zoom=14,width=0,height=0){
  const size=2**zoom,x=(Math.min(180,Math.max(-180,Number(lng)))+180)/360*size;
  const radians=Math.min(85,Math.max(-85,Number(lat)))*Math.PI/180;
  const y=(1-Math.asinh(Math.tan(radians))/Math.PI)/2*size;
  const tiles=[];
- for(let row=-1;row<=1;row++)for(let column=-1;column<=1;column++){
-  const tileX=Math.floor(x)+column,tileY=Math.floor(y)+row;
+ const firstX=width>0?Math.floor(x-width/512):Math.floor(x)-1;
+ const lastX=width>0?Math.floor(x+width/512):Math.floor(x)+1;
+ const firstY=height>0?Math.floor(y-height/512):Math.floor(y)-1;
+ const lastY=height>0?Math.floor(y+height/512):Math.floor(y)+1;
+ for(let tileY=firstY;tileY<=lastY;tileY++)for(let tileX=firstX;tileX<=lastX;tileX++){
   if(tileY<0||tileY>=size)continue;
-  tiles.push({url:`https://tile.openstreetmap.org/${zoom}/${((tileX%size)+size)%size}/${tileY}.png`,left:Math.round((tileX-x)*256),top:Math.round((tileY-y)*256)});
+  tiles.push({url:`https://tile.openstreetmap.org/${zoom}/${((tileX%size)+size)%size}/${tileY}.png`,left:(tileX-x)*256,top:(tileY-y)*256});
  }
  return tiles;
+}
+// Also embedded in exported HTML, where module imports are unavailable.
+export function mapRuntime(){
+ const draw=()=>{
+  for(const map of document.querySelectorAll('.static-map[data-map-lng]')){
+   const width=map.clientWidth,height=map.clientHeight,viewport=`${width}x${height}`;
+   if(!width||!height||map.dataset.mapViewport===viewport)continue;
+   const layer=map.querySelector('.static-map-tiles');
+   const existing=new Map([...layer.children].map(image=>[image.src,image]));
+   const fragment=document.createDocumentFragment();
+   for(const tile of mapTiles(Number(map.dataset.mapLng),Number(map.dataset.mapLat),14,width,height)){
+    const image=existing.get(tile.url)||document.createElement('img');
+    image.src=tile.url;image.alt='';image.loading='lazy';image.decoding='async';image.referrerPolicy='strict-origin-when-cross-origin';
+    image.style.left=`calc(50% + ${tile.left}px)`;image.style.top=`calc(50% + ${tile.top}px)`;
+    fragment.append(image);
+   }
+   layer.replaceChildren(fragment);map.dataset.mapViewport=viewport;
+  }
+ };
+ draw();
+ if(document.body.dataset.mapRuntime)return;
+ document.body.dataset.mapRuntime='true';
+ window.addEventListener('resize',()=>requestAnimationFrame(draw));
+ new MutationObserver(records=>{
+  if(records.some(record=>[...record.addedNodes].some(node=>node.nodeType===1&&(node.matches?.('.static-map')||node.querySelector?.('.static-map')))))requestAnimationFrame(draw);
+ }).observe(document.body,{childList:true,subtree:true});
 }
 export function mapSettings(c,esc){return `<section class="map-settings"><label for="location-address">Search for an address or city</label><div class="map-address-search"><input id="location-address" type="search" value="${esc(c.address||'')}" placeholder="Start typing an address or city" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="map-suggestions" aria-expanded="false"><div id="map-suggestions" class="map-suggestions" role="listbox" hidden></div></div><p id="map-search-status" class="hint" role="status">${c.latitude!=null&&c.latitude!==''&&c.longitude!=null&&c.longitude!==''?'Location selected. The map preview is ready.':'Choose a suggestion to place the pin accurately.'}</p><label>Map display<select id="map-mode"><option value="auto" ${c.mapMode!=='link'?'selected':''}>Map preview</option><option value="link" ${c.mapMode==='link'?'selected':''}>Navigation link only</option></select></label><p class="hint">The profile shows a lightweight map preview. Tapping it opens full navigation.</p><details class="map-advanced" ${c.latitude!==''&&c.latitude!=null?'open':''}><summary>Advanced location options</summary><label>Latitude<input id="location-latitude" type="number" min="-85" max="85" step="any" value="${esc(c.latitude??'')}"></label><label>Longitude<input id="location-longitude" type="number" min="-180" max="180" step="any" value="${esc(c.longitude??'')}"></label><label>Existing map embed<input id="map-embed" value="${esc(c.mapEmbed||'')}" placeholder="Google Maps or OpenStreetMap embed code"></label><p id="map-status" class="hint" role="status">Coordinates or an embed with a location can also place the pin.</p></details></section>`}
 export function bindMaps(card,change){

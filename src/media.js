@@ -1,4 +1,4 @@
-import {mapEmbedSource,mapEmbedCoordinates,addressEmbed,mapSettings,bindMaps,mapTiles} from './maps.js';
+import {mapEmbedSource,mapEmbedCoordinates,addressEmbed,mapSettings,bindMaps} from './maps.js';
 import {icon} from './icons.js';
 import {fileTypes,fileSource,prepareFile,bytesLabel,pageFileBytes,PAGE_FILE_LIMIT} from './files.js';
 import {imageSource,cropStyle} from './photos.js';
@@ -19,8 +19,7 @@ export function locationURLs(c){
 }
 function staticMapHTML(urls,c,esc,interactive){
  const [lng,lat]=urls.coordinates;
- const tiles=mapTiles(lng,lat).map(tile=>`<img src="${tile.url}" alt="" loading="lazy" decoding="async" referrerpolicy="strict-origin-when-cross-origin" style="left:calc(50% + ${tile.left}px);top:calc(50% + ${tile.top}px)">`).join('');
- return `<div class="static-map" role="group" aria-label="Map of ${esc(c.address||c.title||'the selected location')}"><div class="static-map-tiles" aria-hidden="true">${tiles}</div><span class="static-map-pin" aria-hidden="true"></span><span class="static-map-place">${esc(c.address||c.title||'Selected location')}</span><a class="static-map-action" href="${esc(urls.directions)}" target="_blank" rel="noopener noreferrer" ${interactive?'tabindex="-1"':''}><span>Open map ${icon('arrow')}</span></a><a class="static-map-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" ${interactive?'tabindex="-1"':''}>© OpenStreetMap contributors</a></div>`;
+ return `<div class="static-map" data-map-lng="${lng}" data-map-lat="${lat}" role="group" aria-label="Map of ${esc(c.address||c.title||'the selected location')}"><div class="static-map-tiles" aria-hidden="true"></div><span class="static-map-pin" aria-hidden="true"></span><span class="static-map-place">${esc(c.address||c.title||'Selected location')}</span><a class="static-map-action" href="${esc(urls.directions)}" target="_blank" rel="noopener noreferrer" ${interactive?'tabindex="-1"':''}><span>Open map ${icon('arrow')}</span></a><a class="static-map-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" ${interactive?'tabindex="-1"':''}>© OpenStreetMap contributors</a></div>`;
 }
 function catalogCollectionHTML(c,esc,interactive,standalone){
  const files=[c.file,...(c.catalogs||[])].filter(file=>file?.mime==='application/pdf'),cover=imageSource(c.image);

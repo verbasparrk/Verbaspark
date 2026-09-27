@@ -30,6 +30,9 @@ test('media URLs accept only supported providers and safe file data',()=>{
 test('small map preview uses nine nearby tiles and geocoder results are safe and limited',()=>{
  const tiles=mapTiles(14.5058,46.0569);
  assert.equal(tiles.length,9);assert.ok(tiles.every(tile=>/^https:\/\/tile\.openstreetmap\.org\/14\/\d+\/\d+\.png$/.test(tile.url)));
+ const wide=mapTiles(15.314,45.647,14,1432,320);
+ assert.ok(wide.length>9);
+ for(const x of [-716,716])for(const y of [-160,160])assert.ok(wide.some(tile=>tile.left<=x&&tile.left+256>=x&&tile.top<=y&&tile.top+256>=y));
  const suggestions=photonSuggestions({features:[{geometry:{coordinates:[14.5058,46.0569]},properties:{street:'Vajdova cesta',housenumber:'23',city:'Semič',country:'Slovenia'}},{geometry:{coordinates:[Infinity,46]},properties:{name:'Invalid'}}]});
  assert.deepEqual(suggestions,[{label:'Vajdova cesta 23, Semič, Slovenia',lng:14.5058,lat:46.0569}]);
 });

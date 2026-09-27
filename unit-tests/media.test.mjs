@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {videoEmbed,locationURLs,mediaHTML,fileFromURL} from '../src/media.js';
 import {cleanFile,fileSource,prepareFile,pageFileBytes,FILE_LIMIT,PAGE_FILE_LIMIT} from '../src/files.js';
 import {cleanPage} from '../src/page-data.js';
-import {mapEmbedSource,mapEmbedCoordinates,addressEmbed} from '../src/maps.js';
+import {mapEmbedSource,mapEmbedCoordinates,addressEmbed,mapTiles} from '../src/maps.js';
+import {photonSuggestions} from '../server/geocode.js';
 test('map sources restrict embeds and encode address-based maps',()=>{
  assert.equal(mapEmbedSource('<iframe src="https://www.google.com/maps/embed?pb=abc"></iframe>'),'https://www.google.com/maps/embed?pb=abc');
  assert.equal(mapEmbedSource('https://www.google.com.evil.test/maps/embed?pb=abc'),'');
@@ -21,8 +22,15 @@ test('media URLs accept only supported providers and safe file data',()=>{
  assert.deepEqual(locationURLs({latitude:46.0569,longitude:14.5058}).coordinates,[14.5058,46.0569]);
  assert.deepEqual(locationURLs({mapEmbed:'https://www.openstreetmap.org/export/embed.html?bbox=14,46,15,47&marker=46.0569%2C14.5058'}).coordinates,[14.5058,46.0569]);
  const location={type:'location',title:'Find me',address:'Ljubljana',latitude:46.0569,longitude:14.5058};
- assert.match(mediaHTML(location,value=>value,false),/data-cooperative-map/);
- assert.match(mediaHTML(location,value=>value,false,true),/<iframe/);
+ assert.match(mediaHTML(location,value=>value,false),/class="static-map"/);
+ assert.match(mediaHTML(location,value=>value,false,true),/OpenStreetMap contributors/);
+ assert.doesNotMatch(mediaHTML(location,value=>value,false),/<iframe/);
+});
+test('small map preview uses nine nearby tiles and geocoder results are safe and limited',()=>{
+ const tiles=mapTiles(14.5058,46.0569);
+ assert.equal(tiles.length,9);assert.ok(tiles.every(tile=>/^https:\/\/tile\.openstreetmap\.org\/14\/\d+\/\d+\.png$/.test(tile.url)));
+ const suggestions=photonSuggestions({features:[{geometry:{coordinates:[14.5058,46.0569]},properties:{street:'Vajdova cesta',housenumber:'23',city:'Semič',country:'Slovenia'}},{geometry:{coordinates:[Infinity,46]},properties:{name:'Invalid'}}]});
+ assert.deepEqual(suggestions,[{label:'Vajdova cesta 23, Semič, Slovenia',lng:14.5058,lat:46.0569}]);
 });
 test('new blocks and attachments survive document sanitization',()=>{
  const page=cleanPage({cards:[{type:'document',title:'PDF',file:{name:'cv.pdf',size:10,mime:'application/pdf',src:'data:application/pdf;base64,JVBERi0='}},{type:'location',address:'Ljubljana',latitude:46,longitude:14},{type:'audio'},{type:'catalog'}]});

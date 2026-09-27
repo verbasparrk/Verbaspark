@@ -1,4 +1,4 @@
-import {mapEmbedSource,mapEmbedCoordinates,addressEmbed,mapSettings,bindMaps} from './maps.js';
+import {mapEmbedSource,mapEmbedCoordinates,addressEmbed,mapSettings,bindMaps,mapTiles} from './maps.js';
 import {icon} from './icons.js';
 import {fileTypes,fileSource,prepareFile,bytesLabel,pageFileBytes,PAGE_FILE_LIMIT} from './files.js';
 import {imageSource,cropStyle} from './photos.js';
@@ -13,9 +13,14 @@ export function videoEmbed(raw){
 }
 export function locationURLs(c){
  const lat=Number(c.latitude),lng=Number(c.longitude),valid=c.latitude!==''&&c.longitude!==''&&c.latitude!=null&&c.longitude!=null&&Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=85&&Math.abs(lng)<=180;
- const shared=mapEmbedSource(c.mapEmbed);const query=valid?`${lat},${lng}`:String(c.address||'').trim();if(!query&&!shared)return null;
- const coordinates=valid?[lng,lat]:mapEmbedCoordinates(shared);
+ const shared=mapEmbedSource(c.mapEmbed),coordinates=valid?[lng,lat]:mapEmbedCoordinates(shared);
+ const query=valid?`${lat},${lng}`:String(c.address||'').trim()||(coordinates?`${coordinates[1]},${coordinates[0]}`:'');if(!query&&!shared)return null;
  return {directions:'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(query),embed:shared||(valid?'https://www.openstreetmap.org/export/embed.html?'+new URLSearchParams({bbox:[Math.max(-180,lng-.015),Math.max(-85,lat-.01),Math.min(180,lng+.015),Math.min(85,lat+.01)].join(','),layer:'mapnik',marker:`${lat},${lng}`}):addressEmbed(c.address)),coordinates};
+}
+function staticMapHTML(urls,c,esc,interactive){
+ const [lng,lat]=urls.coordinates;
+ const tiles=mapTiles(lng,lat).map(tile=>`<img src="${tile.url}" alt="" loading="lazy" decoding="async" referrerpolicy="strict-origin-when-cross-origin" style="left:calc(50% + ${tile.left}px);top:calc(50% + ${tile.top}px)">`).join('');
+ return `<div class="static-map" role="group" aria-label="Map of ${esc(c.address||c.title||'the selected location')}"><div class="static-map-tiles" aria-hidden="true">${tiles}</div><span class="static-map-pin" aria-hidden="true"></span><span class="static-map-place">${esc(c.address||c.title||'Selected location')}</span><a class="static-map-action" href="${esc(urls.directions)}" target="_blank" rel="noopener noreferrer" ${interactive?'tabindex="-1"':''}><span>Open map ${icon('arrow')}</span></a><a class="static-map-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" ${interactive?'tabindex="-1"':''}>© OpenStreetMap contributors</a></div>`;
 }
 function catalogCollectionHTML(c,esc,interactive,standalone){
  const files=[c.file,...(c.catalogs||[])].filter(file=>file?.mime==='application/pdf'),cover=imageSource(c.image);
@@ -26,7 +31,7 @@ function catalogCollectionHTML(c,esc,interactive,standalone){
 export function mediaHTML(c,esc,interactive,standalone=false){
  const trigger=(kind,src,label,attributes='')=>`<button class="media-launch" data-media="${kind}" data-src="${esc(src)}" data-title="${esc(c.title)}" ${attributes} ${interactive?'tabindex="-1"':''}>${icon(kind==='map'?'location':kind==='audio'?'audio':kind==='pdf'?'document':'video')}<span>${label}</span></button>`;
  if(c.type==='video'){const embed=videoEmbed(c.url);return embed?`<div class="media-frame">${trigger('video',embed.url,'Load '+embed.provider+' player')}</div>`:''}
- if(c.type==='location'){const urls=locationURLs(c),enhanced=!!urls?.coordinates&&!interactive&&!standalone,coords=enhanced?`data-map-lng="${urls.coordinates[0]}" data-map-lat="${urls.coordinates[1]}" data-map-url="${esc(urls.directions)}" data-map-fallback="${esc(urls.embed)}"`:'';return `<div class="location-address">${icon('location')}<span>${esc(c.address||'Pinned location')}</span></div>${urls?`${urls.embed&&c.mapMode!=='link'?`<div class="media-frame map-frame">${c.mapMode==='click'?trigger('map',urls.embed,'Show map',coords):enhanced?`<div class="cooperative-map" data-cooperative-map ${coords} role="region" aria-label="${esc(c.title||'Location')} map"><span class="map-loading">Loading map…</span></div>`:`<iframe src="${esc(urls.embed)}" title="${esc(c.title||'Location')} map" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-popups" ${interactive?'tabindex="-1"':''}></iframe><a class="map-touch-fallback" href="${esc(urls.directions)}" target="_blank" rel="noopener noreferrer">Open in navigation ${icon('arrow')}</a>`}</div>`:''}<a class="media-link" href="${esc(urls.directions)}" target="_blank" rel="noopener noreferrer" ${interactive?'tabindex="-1"':''}>Open navigation ${icon('arrow')}</a>`:'<div class="media-empty">Add an address in block settings.</div>'}`}
+ if(c.type==='location'){const urls=locationURLs(c);return `<div class="location-address">${icon('location')}<span>${esc(c.address||'Pinned location')}</span></div>${urls?`${urls.coordinates&&c.mapMode!=='link'?staticMapHTML(urls,c,esc,interactive):''}<a class="media-link" href="${esc(urls.directions)}" target="_blank" rel="noopener noreferrer" ${interactive?'tabindex="-1"':''}>Open navigation ${icon('arrow')}</a>`:'<div class="media-empty">Search for an address or city in block settings.</div>'}`}
  if(c.type==='catalog'&&c.catalogMode==='collection')return catalogCollectionHTML(c,esc,interactive,standalone);
  if(!['document','catalog','audio'].includes(c.type))return '';
  const file=c.file,src=fileSource(file?.src),cover=c.type==='catalog'&&imageSource(c.image);
@@ -55,7 +60,7 @@ export function fileFromURL(raw,type){
 export function bindMedia(state,selected,change){
  const card=state.cards.find(c=>c.id===selected);if(!card)return;bindMaps(card,change);
  document.querySelector('#catalog-mode')?.addEventListener('change',event=>change(()=>card.catalogMode=event.target.value));
- for(const key of ['address','latitude','longitude'])document.querySelector('#location-'+key)?.addEventListener('change',e=>{if(!e.target.reportValidity())return;change(()=>{card[key]=e.target.value;if(key==='address'){card.latitude='';card.longitude='';card.mapEmbed=''}else card.mapEmbed=''})});
+ for(const key of ['latitude','longitude'])document.querySelector('#location-'+key)?.addEventListener('change',e=>{if(!e.target.reportValidity())return;change(()=>{card[key]=e.target.value;card.mapEmbed=''})});
  const status=text=>{const el=document.querySelector('#file-status');if(el)el.textContent=text};
  const upload=async file=>{if(!file)return;status('Reading file…');try{const result=await prepareFile(file,state,card.id);if(!state.cards.includes(card))return;if(card.type==='audio'&&!result.mime.startsWith('audio/')||card.type==='catalog'&&result.mime!=='application/pdf'||card.type==='document'&&result.mime.startsWith('audio/'))throw Error('Choose a file that matches this block type.');change(()=>card.file=result);status('File ready. Saved with your page.')}catch(error){status(error.message)}};
  const collectionInput=document.querySelector('#catalog-files-upload');
@@ -90,10 +95,8 @@ export function mediaRuntime(){
    if(src.startsWith('data:')){try{blobURL=URL.createObjectURL(await (await fetch(src)).blob());if(dialog.isConnected)frame.src=blobURL;else URL.revokeObjectURL(blobURL)}catch{fallback.textContent='Preview unavailable. Download PDF.'}}else frame.src=src;
    return;
   }
-  if(kind==='map'&&button.dataset.mapLat&&button.dataset.mapLng){const map=document.createElement('div');map.className='cooperative-map';map.dataset.cooperativeMap='';map.dataset.mapLat=button.dataset.mapLat;map.dataset.mapLng=button.dataset.mapLng;map.dataset.mapUrl=button.dataset.mapUrl;map.dataset.mapFallback=button.dataset.mapFallback;map.setAttribute('role','region');map.setAttribute('aria-label',title+' map');const loading=document.createElement('span');loading.className='map-loading';loading.textContent='Loading map…';map.append(loading);button.replaceWith(map);document.dispatchEvent(new Event('verbaspark:mount-maps'));return}
-  try{const url=new URL(src);if(url.protocol!=='https:'||!['www.youtube-nocookie.com','player.vimeo.com','www.openstreetmap.org','www.google.com','maps.google.com'].includes(url.hostname))return}catch{return}
-  const frame=document.createElement('iframe');frame.src=src;frame.title=title+(kind==='map'?' map':' video');frame.allow='fullscreen; picture-in-picture; encrypted-media';frame.allowFullscreen=true;frame.referrerPolicy='strict-origin-when-cross-origin';frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-presentation allow-popups');button.replaceWith(frame);
-  if(kind==='map'){const navigation=frame.closest('.location')?.querySelector('.media-link');if(navigation){const fallback=document.createElement('a');fallback.className='map-touch-fallback';fallback.href=navigation.href;fallback.target='_blank';fallback.rel='noopener noreferrer';fallback.textContent='Open map in navigation ↗';frame.after(fallback)}}
+  try{const url=new URL(src);if(url.protocol!=='https:'||!['www.youtube-nocookie.com','player.vimeo.com'].includes(url.hostname))return}catch{return}
+  const frame=document.createElement('iframe');frame.src=src;frame.title=title+' video';frame.allow='fullscreen; picture-in-picture; encrypted-media';frame.allowFullscreen=true;frame.referrerPolicy='strict-origin-when-cross-origin';frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-presentation allow-popups');button.replaceWith(frame);
   frame.focus();
  });
 }

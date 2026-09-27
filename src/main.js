@@ -17,7 +17,6 @@ import {openPublishReview} from './publish-review.js';
 import {contentLibrary,mountContentLibrary,newBlock,duplicateBlock,publicDocument} from './content-library.js';
 import {mediaHTML,mediaPanel,bindMedia,mediaRuntime,videoEmbed,fileFromURL} from './media.js';
 import {prepareEvaluationDocuments,insertEvaluationDocuments} from './evaluation-documents.js';
-import './cooperative-map.js';
 import {prepareFile,pageFileBytes,PAGE_FILE_LIMIT} from './files.js';
 import {assignClassicRoles,classicCards,isClassicHeader} from './business-card.js';
 import './style.css';

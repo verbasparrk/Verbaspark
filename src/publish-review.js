@@ -27,7 +27,7 @@ export function reviewPage(state){
    else if(files.some(file=>file.mime!=='application/pdf'||!fileSource(file.src)))add('error','One or more PDF catalogs are unavailable. Reload your online draft or replace the file.',card,'catalog-files-upload');
   }else if(['document','catalog','audio'].includes(card.type)&&!fileSource(card.file?.src))add('error',card.file?.path?'File access is unavailable. Load your online draft to refresh it.':'Upload a file or add a direct file link.',card,'file-upload');
   if(card.type==='catalog'&&(!card.catalogMode||card.catalogMode==='cover')&&!imageSource(card.image))add('warning','Add a cover image to help your catalog stand out.',card,'photo-upload');
-  if(card.type==='location'){const location=locationURLs(card);if(!location)add('error','Add an address or a map location.',card,'location-address');else if(card.mapMode!=='link'&&!location.embed)add('warning','Only navigation is available. Add a map embed, or choose navigation only.',card,'map-embed')}
+  if(card.type==='location'){const location=locationURLs(card);if(!location)add('error','Add an address or a map location.',card,'location-address');else if(card.mapMode!=='link'&&!location.coordinates)add('warning','Choose an address suggestion to show the map preview. Navigation still works.',card,'location-address')}
  }
  return {issues,errors:issues.filter(i=>i.severity==='error').length,warnings:issues.filter(i=>i.severity==='warning').length,visible:cards.length,hidden:state.cards.length-cards.length};
 }

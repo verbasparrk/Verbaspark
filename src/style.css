@@ -245,7 +245,8 @@ body:has(.welcome-dialog[open]) #app{visibility:hidden}
  .topbar .top-actions #preview{font-size:0;min-width:40px}
  .topbar .top-actions #preview .ui-icon{width:18px;height:18px}
 }
-.personal-page .card.section{grid-column:1/-1!important;grid-row:auto!important;min-height:0;height:auto;background:transparent;border:0;box-shadow:none;overflow:visible}
+.personal-page .card.section{grid-column:1/-1!important;min-height:0;height:auto;background:transparent;border:0;box-shadow:none;overflow:visible}
+.personal-page:is(.classic-page,.editorial-page,.showcase-page) .card.section{grid-row:auto!important}
 .personal-page .card.section .card-content{padding:26px 0 8px;min-height:0;height:auto}
 .personal-page .card.section .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
 .personal-page .card.section h2{font-size:calc(clamp(27px,4vw,44px) * var(--heading-scale,1));line-height:1.1;margin:8px 0}

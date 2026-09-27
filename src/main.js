@@ -16,8 +16,9 @@ import {createWorkspaceStatus} from './workspace-status.js';
 import {openPublishReview} from './publish-review.js';
 import {contentLibrary,mountContentLibrary,newBlock,duplicateBlock,publicDocument} from './content-library.js';
 import {mediaHTML,mediaPanel,bindMedia,mediaRuntime,videoEmbed,fileFromURL} from './media.js';
+import {prepareEvaluationDocuments,insertEvaluationDocuments} from './evaluation-documents.js';
 import './cooperative-map.js';
-import {prepareFile} from './files.js';
+import {prepareFile,pageFileBytes,PAGE_FILE_LIMIT} from './files.js';
 import {assignClassicRoles,classicCards,isClassicHeader} from './business-card.js';
 import './style.css';
 import {icon,blockIcons,platformIcon} from './icons.js';
@@ -71,6 +72,17 @@ function confirmPublish(){if(reviewedDocument===JSON.stringify(state))return Pro
 function checkpoint(){history.push(JSON.stringify(state));if(history.length>40)history.shift();future=[];}
 function save(){saving.edit(state)}
 function change(fn){const previous=structuredClone(state);checkpoint();fn();markProgress(state,previous);save();render();}
+async function uploadEvaluationPDFs(files,sectionId,status){
+ const selectedFiles=Array.from(files||[]);if(!selectedFiles.length)return;
+ if(status?.isConnected)status.textContent=`Reading ${selectedFiles.length} PDF${selectedFiles.length===1?'':'s'}…`;
+ try{
+  const documents=await prepareEvaluationDocuments(selectedFiles,state,!sectionId);
+  if(state.cards.length+documents.length+(sectionId?0:1)>100)throw Error('Your page can contain up to 100 blocks. Remove a block before adding these PDFs.');
+  if(pageFileBytes(state)+documents.reduce((total,card)=>total+card.file.size,0)>PAGE_FILE_LIMIT)throw Error('Files on this page can total up to 50 MB. Remove or replace a file first.');
+  change(()=>{insertEvaluationDocuments(state,documents,sectionId);selected=documents[0].id;tab='edit'});
+  const toast=document.querySelector('#toast');if(toast)toast.textContent=`Added ${documents.length} evaluation PDF${documents.length===1?'':'s'}. Edit each title or description, then publish your page.`;
+ }catch(error){if(status?.isConnected)status.textContent=error.message;else {const toast=document.querySelector('#toast');if(toast)toast.textContent=error.message}}
+}
 function loadRecovered(document,{alreadySaved=false}={}){checkpoint();state=document;selected=state.cards[0]?.id;tab='edit';if(!alreadySaved)save();render()}
 function cardHTML(c,interactive=false,priority=false,standalone=false){return `<article class="card ${c.featured&&c.url?'featured':''} ${interactive&&c.hidden?'block-hidden':''} ${c.type==='photo'?'photo-role-'+esc(c.photoRole||'content'):''} ${esc(c.type)} ${esc(c.size)} ${(c.compact??c.type==='contact')&&c.size!=='tall'?'compact':''} ${c.type==='link'?'link-style-'+esc(c.linkStyle||'card'):''} ${interactive&&selected===c.id?'selected':''}" ${c.coverDim!==undefined?`style="--cover-overlay:rgba(0,0,0,${c.coverDim/100})"`:""} data-id="${esc(c.id)}" ${interactive?'draggable="true" tabindex="0" role="button" aria-label="Edit '+esc(c.title)+'"':''}>
 ${interactive&&c.hidden?'<span class="hidden-block-badge">Hidden from public page</span>':''}${c.image&&c.type!=='catalog'?`<div class="photo-viewport"><img src="${esc(imageSource(c.image))}" alt="${esc(c.alt||c.title)}" style="${cropStyle(c)}" loading="${priority?'eager':'lazy'}" ${priority?'fetchpriority="high"':''}></div>`:''}
@@ -108,6 +120,9 @@ document.querySelector('#compact-card')?.addEventListener('change',event=>change
 const addLink=()=>openLinks(card=>change(()=>{const added=newBlock(card.type,card);if(card.type==='video')added.size='wide';state.cards.push(added);selected=added.id;tab='edit'}));document.querySelector('#add-link')?.addEventListener('click',addLink);document.querySelector('#account')?.addEventListener('click',()=>accountDialog(()=>structuredClone(state),loadRecovered,saving,confirmPublish));document.querySelector('#templates')?.addEventListener('click',()=>openTemplates(state,pageHTML,(template,keep)=>change(()=>{state.layout=template.layout||'bento';state.accent=template.accent;state.gap=template.gap;state.radius=template.radius;state.design=structuredClone(template.design);if(keep){const priority=[...new Set(template.cards.map(c=>c.type))];state.cards.sort((a,b)=>{const rank=t=>priority.includes(t)?priority.indexOf(t):priority.length;return rank(a.type)-rank(b.type)});state.cards.forEach(c=>{const match=template.cards.find(t=>t.type===c.type);if(match)c.size=match.size})}else{state.name=template.name;state.cards=structuredClone(template.cards)}if(state.layout==='classic')assignClassicRoles(state.cards);selected=state.cards.find(c=>c.type==='intro')?.id||state.cards[0]?.id;tab=selected?'edit':'blocks'})));const on=(s,e,fn)=>document.querySelector(s)?.addEventListener(e,fn);on('#close-inspector','click',()=>{selected=null;tab='blocks';render()});document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render()});document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>change(()=>{const card=newBlock(b.dataset.add);selected=card.id;tab='edit';state.cards.push(card)}));
 const formBlock=document.querySelector('[data-add="contact-form"]');if(formBlock)formBlock.onclick=()=>{selected=null;tab='design';render();document.querySelector('.mobile-sheet .sheet-done')?.click();editContactForm()};
 const linkBlock=document.querySelector('[data-add="link"]');if(linkBlock)linkBlock.onclick=addLink;
+const evaluationsBlock=document.querySelector('[data-add="evaluations"]');if(evaluationsBlock)evaluationsBlock.onclick=()=>document.querySelector('#evaluations-upload')?.click();
+document.querySelector('#evaluations-upload')?.addEventListener('change',event=>{uploadEvaluationPDFs(event.target.files,null,document.querySelector('#evaluations-status'));event.target.value=''});
+document.querySelector('#section-pdf-upload')?.addEventListener('change',event=>{uploadEvaluationPDFs(event.target.files,selected,document.querySelector('#section-pdf-status'));event.target.value=''});
 document.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>change(()=>state.cards.find(c=>c.id===selected).size=b.dataset.size));
 for(const [id,key] of [['card-subtitle','subtitle'],['card-cta','ctaLabel'],['card-title','title'],['card-body','body'],['card-url','url'],['card-image','image']])on('#'+id,'change',e=>change(()=>{const card=state.cards.find(c=>c.id===selected);card[key]=e.target.value;if(key==='image'){delete card.imagePath;card.crop={x:50,y:50,zoom:100}}}));
 for(const [id,key] of [['page-name','name'],['accent','accent'],['gap','gap'],['radius','radius']])on('#'+id,'change',e=>change(()=>state[key]=['gap','radius'].includes(key)?Number(e.target.value):e.target.value));document.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>change(()=>state.accent=b.dataset.color));

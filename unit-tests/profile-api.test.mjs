@@ -11,6 +11,7 @@ test('public endpoints validate, limit, exclude owner analytics and render initi
  globalThis.fetch=async(url,options)=>{const path=new URL(url).pathname;requests.push({path,body:options?.body});let result;
   if(path==='/rest/v1/published_pages')result={owner_id:user,slug:'alice',moderated_at:hidden?'2026-09-24T00:00:00Z':null,document:{name:'Alice',cards:[{id:'intro',type:'intro',title:'Alice',url:'https://example.com'}],profile:{contactForm:contactOn,analytics:true,seo:{title:'Alice portfolio',description:'My work'}}}};
   else if(path==='/rest/v1/rpc/platform_take_limit')result=!limited;
+  else if(path==='/rest/v1/contact_messages')result={id:'cccccccc-cccc-cccc-cccc-cccccccccccc'};
   else if(path==='/auth/v1/user')result={id:user};else result=null;
   return new Response(JSON.stringify(result),{status:200,headers:{'Content-Type':'application/json'}});
  };

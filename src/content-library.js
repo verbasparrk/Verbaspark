@@ -1,6 +1,7 @@
 import {icon} from './icons.js';
 
 export const contentGroups=[
+ {name:'Organize',items:[['section','Section heading','Group related cards with a clear heading.','Projects / Contact']]},
  {name:'Introduction',items:[['intro','Introduction','Your name, a short bio, and a main action.','Alex Morgan · Designer'],['text','Text','A story, services, or a short update.','What I’m working on'],['project','Project','Show your work with a link to the details.','Selected project ↗']]},
  {name:'Photos',items:[['photo','Photo','A portrait or a favorite photograph.','Portrait · Cover · Moment'],['gallery','Gallery','A photo grid or a swipeable collection.','A collection of 3–12 photos']]},
  {name:'Documents',items:[['document','Document','Share a CV, price list, or other download.','CV.pdf · Download ↓'],['catalog','Catalog','A PDF with a prominent cover image.','Summer catalog · Open PDF']]},
@@ -18,9 +19,9 @@ export function mountContentLibrary(tab,close){
 }
 
 export function newBlock(type,overrides={}){
- const wide=['intro','project','gallery','catalog','audio','video','location'].includes(type);
+ const wide=['intro','project','gallery','catalog','audio','video','location','section'].includes(type);
  const titles={intro:'Your name',text:'What’s on my mind',project:'My latest project',photo:'A moment worth sharing',gallery:'My gallery',document:'My document',catalog:'My catalog',video:'Watch my latest video',audio:'Listen',contact:'Let’s connect',link:'A favorite link',location:'Find me'};
- return {id:crypto.randomUUID(),type,size:wide?'wide':'small',title:titles[type]||'New block',body:['intro','project','text'].includes(type)?'Click to make this your own.':'',hidden:false,
+ return {id:crypto.randomUUID(),type,size:wide?'wide':'small',title:type==='section'?'New section':titles[type]||'New block',body:['intro','project','text'].includes(type)?'Click to make this your own.':'',hidden:false,
   ...(['contact','document','link'].includes(type)?{compact:true}:{}),
   ...(['intro','project','link','video'].includes(type)?{url:''}:{}),
   ...(type==='contact'?{url:'mailto:',ctaLabel:'Send an email'}:{}),
@@ -28,5 +29,5 @@ export function newBlock(type,overrides={}){
   ...(type==='location'?{address:'',latitude:'',longitude:'',mapMode:'auto'}:{}),
   ...(type==='photo'?{image:'',photoRole:'content'}:{}),...overrides};
 }
-export function duplicateBlock(card){const copy=structuredClone(card);copy.id=crypto.randomUUID();copy.title=card.title+' (copy)';if(copy.type==='photo')copy.photoRole='content';return copy}
+export function duplicateBlock(card){const copy=structuredClone(card);copy.id=crypto.randomUUID();copy.title=card.title+' (copy)';copy.featured=false;if(copy.type==='photo')copy.photoRole='content';return copy}
 export function publicDocument(state){const {starterSample,...page}=state;return {...page,cards:state.cards.filter(c=>c.hidden!==true)}}

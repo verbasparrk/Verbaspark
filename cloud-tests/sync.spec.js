@@ -17,7 +17,7 @@ test('Showcase cover uploads, reuses online storage and renders on the public pa
  const download=page.waitForEvent('download');await page.locator('#export').evaluate(el=>el.click());
  const html=await fs.readFile(await (await download).path(),'utf8');expect(html).toContain('class="personal-page showcase-page"');expect(html).toContain('data:image/png;base64,');
  server.publish(structuredClone(server.draft.document));await page.goto('/p/alice');
- await expect(page.locator('.showcase-page .intro .photo-viewport img')).toHaveAttribute('src',/token=mock/);
+ await expect(page.locator('.showcase-page .intro .photo-viewport img')).toHaveAttribute('src',/\/api\/image\?slug=alice&path=/);
 });
 test('contact preserves answers on failure, blocks duplicate submissions and shows custom confirmation',async({page})=>{
  const server=await mockCloud(page);server.publish({name:'Alice',profile:{contactForm:true,contactSuccess:'Thank you! I reply within two working days.'},cards:[]});

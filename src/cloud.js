@@ -27,11 +27,29 @@ export async function saveDraft(document,{userId,revision,requestId}){
  const current=check(await cloud.auth.getUser()).user;if(current?.id!==userId)throw Error('Account changed.');
  return check(await cloud.rpc('save_draft',{draft_document:copy,expected_revision:revision,request_id:requestId,expected_owner:userId}));
 }
-export async function resolveImages(document){for(const c of [...(document.cards||[]).flatMap(c=>[c,...(c.images||[])]),...(document.profile?.seo?[document.profile.seo]:[]),...(document.showcaseCover?[document.showcaseCover]:[])]){if(c.imagePath){const result=await cloud.storage.from('page-images').createSignedUrl(c.imagePath,3600);c.image=result.data?.signedUrl||''}if(c.file?.path){const result=await cloud.storage.from('page-files').createSignedUrl(c.file.path,3600);c.file.src=result.data?.signedUrl||''}}return document;}
+export async function resolveImages(document){
+ const items=[...(document.cards||[]).flatMap(c=>[c,...(c.images||[])]),...(document.profile?.seo?[document.profile.seo]:[]),...(document.showcaseCover?[document.showcaseCover]:[])];
+ const images=new Map(),files=new Map();
+ await Promise.all(items.flatMap(item=>{
+  const jobs=[];
+  if(item.imagePath){if(!images.has(item.imagePath))images.set(item.imagePath,cloud.storage.from('page-images').createSignedUrl(item.imagePath,3600).then(result=>result.data?.signedUrl||''));jobs.push(images.get(item.imagePath).then(url=>{item.image=url}))}
+  if(item.file?.path){if(!files.has(item.file.path))files.set(item.file.path,cloud.storage.from('page-files').createSignedUrl(item.file.path,3600).then(result=>result.data?.signedUrl||''));jobs.push(files.get(item.file.path).then(url=>{item.file.src=url}))}
+  return jobs;
+ }));
+ return document;
+}
+export async function resolvePublicImages(document,slug){
+ const items=[...(document.cards||[]).flatMap(c=>[c,...(c.images||[])]),...(document.showcaseCover?[document.showcaseCover]:[])];
+ const endpoint=(kind,path='')=>new URL('/api/'+kind+'?slug='+encodeURIComponent(slug)+(path?'&path='+encodeURIComponent(path):''),globalThis.location.origin).href;
+ for(const item of items)if(item.imagePath)item.image=endpoint('image',item.imagePath);
+ if(document.profile?.seo?.imagePath)document.profile.seo.image=endpoint('cover');
+ for(const item of items)if(item.file?.path)item.file.src=endpoint('file',item.file.path);
+ return document;
+}
 export async function exportImages(document){const copy=structuredClone(document);for(const card of [...copy.cards.flatMap(c=>[c,...(c.images||[])]),...(copy.profile?.seo?[copy.profile.seo]:[]),...(copy.showcaseCover?[copy.showcaseCover]:[])]){
  for(const [object,pathKey,sourceKey] of [[card,'imagePath','image'],[card.file,'path','src']]){if(!object?.[pathKey])continue;if(!object[sourceKey])throw Error('Reload your online draft to refresh its photos and files before exporting.');const response=await fetch(object[sourceKey]);if(!response.ok)throw Error('Reload your online draft to refresh its photos and files before exporting.');const blob=await response.blob();object[sourceKey]=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)});delete object[pathKey]}
  }return copy;}
-export async function publicPage(slug){if(!cloud)throw Error('Publishing is not connected yet.');const row=check(await cloud.from('published_pages').select('*').eq('slug',slug).maybeSingle());if(!row||row.moderated_at)throw Error('This page is not published.');return resolveImages(row.document)}
+export async function publicPage(slug){if(!cloud)throw Error('Publishing is not connected yet.');const row=check(await cloud.from('published_pages').select('*').eq('slug',slug).maybeSingle());if(!row||row.moderated_at)throw Error('This page is not published.');return resolvePublicImages(row.document,slug)}
 export function accountDialog(getState,loadState,saving,confirmPublish=async()=>true){
  const dialog=document.createElement('dialog');dialog.className='account-dialog';dialog.innerHTML='<button class="account-close" aria-label="Close account"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><h2>Your Verbaspark</h2><div class="account-content"></div>';document.body.append(dialog);dialog.showModal();dialog.onclose=()=>dialog.remove();dialog.querySelector('.account-close').onclick=()=>dialog.close();const content=dialog.querySelector('.account-content');
  const message=text=>{content.querySelector('[role=status]').textContent=text};

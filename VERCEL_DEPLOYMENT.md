@@ -21,4 +21,6 @@ The marketing page now lives at `/`, the editor at `/editor/`, and published pro
 
 For storage limits, visitor reports and custom-domain mapping, apply [migration 012](supabase/migrations/012_platform_extensions.sql) after 011. Custom domain registration additionally needs server-only `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID` and `VERCEL_TEAM_ID`; see [SETUP.md](SETUP.md). Keep the token out of `VITE_` variables and Git. Domain DNS instructions come from Vercel's API, and a domain is marked active only after Vercel confirms verification and DNS configuration.
 
+For optional contact email alerts, apply [migration 013](supabase/migrations/013_contact_notifications.sql), verify a sender domain with Resend, then add server-only `RESEND_API_KEY`, `CONTACT_EMAIL_FROM`, and `CRON_SECRET` to Vercel Production settings. Redeploy after adding variables. The daily retry cron is compatible with Hobby; the first delivery is attempted when the visitor submits the form. Owners opt in under **Profile settings → Contact & analytics** and must publish the changed setting. Details and limitations are in [SETUP.md](SETUP.md).
+
 GitHub runs unit, browser, mocked-cloud tests and a production build on every push to `main` and on pull requests. Those checks validate the code but do not replace the live Supabase/Vercel verification above. Vercel deploys new commits automatically.

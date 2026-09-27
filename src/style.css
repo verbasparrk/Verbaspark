@@ -227,3 +227,16 @@
  .topbar .top-actions #preview{font-size:0;min-width:40px}
  .topbar .top-actions #preview .ui-icon{width:18px;height:18px}
 }
+.personal-page .card.section{grid-column:1/-1!important;grid-row:auto!important;min-height:0;height:auto;background:transparent;border:0;box-shadow:none;overflow:visible}
+.personal-page .card.section .card-content{padding:26px 0 8px;min-height:0;height:auto}
+.personal-page .card.section .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.personal-page .card.section h2{font-size:calc(clamp(27px,4vw,44px) * var(--heading-scale,1));line-height:1.1;margin:8px 0}
+.personal-page .card.section p{max-width:65ch;margin:0}
+.personal-page .card.featured{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--card-shadow,none)}
+.personal-page .card.featured .card-link{background:var(--button-bg,var(--accent));color:var(--button-text,#fff);border:1px solid var(--accent);border-radius:var(--button-radius,5px);padding:11px 17px;font-weight:700}
+.personal-page .card.featured .card-link span{color:inherit}
+.personal-page .featured-label{display:inline-block;margin:0 0 10px;padding:4px 8px;border:1px solid var(--accent);border-radius:4px;color:var(--accent);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.personal-page.classic-page .card.section{width:calc(100% - 64px);margin:8px 32px 0;border-top:1px solid var(--page-border)}
+.personal-page:is(.classic-page,.editorial-page,.showcase-page) .card.featured{background:var(--page-surface);border:1px solid var(--accent);border-radius:var(--radius);padding:var(--card-padding,24px)}
+.personal-page:is(.editorial-page,.showcase-page) .card.section{background:transparent;border:0;box-shadow:none;padding:0}
+@container(max-width:480px){.personal-page.classic-page .card.section{width:calc(100% - 40px);margin-inline:20px}}

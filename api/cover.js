@@ -5,6 +5,7 @@ export default async function handler(req,res){
  try{const db=publicReader(),page=await published(db,req.query.slug),path=page.document.profile?.seo?.imagePath;
   if(!path||!path.startsWith(page.owner_id+'/')||!/^[a-f0-9-]{36}\/[a-f0-9]{64}\.webp$/.test(path))return res.status(404).end();
   const {data,error}=await db.storage.from('page-images').download(path);if(error||!data)return res.status(404).end();
+  if(data.size>4000000){const signed=await db.storage.from('page-images').createSignedUrl(path,300);if(signed.error||!signed.data?.signedUrl)return res.status(503).end();res.setHeader('Location',signed.data.signedUrl);return res.status(302).end()}
   res.setHeader('Content-Type','image/webp');res.status(200).send(Buffer.from(await data.arrayBuffer()));
  }catch{res.status(503).end()}
 }

@@ -199,6 +199,24 @@
 .profile-report-button{display:block;margin:24px auto 12px;background:transparent;border:0;color:var(--muted,#667);font-size:12px;text-decoration:underline;cursor:pointer}.profile-report-dialog{width:min(460px,calc(100% - 24px));border:1px solid #495363;border-radius:16px;padding:26px;background:#1a2028;color:#e9edf2;box-shadow:0 22px 70px #0008}.profile-report-dialog::backdrop{background:#0a101bcc}.profile-report-dialog h2{margin:0 0 10px;font-size:24px}.profile-report-dialog p{font-size:13px;line-height:1.5;color:#b4c2d0}.profile-report-dialog label{display:block;margin-top:16px;font-size:13px}.profile-report-dialog select,.profile-report-dialog textarea{display:block;width:100%;margin-top:7px;padding:11px;border:1px solid #596779;border-radius:8px;background:#111820;color:#fff;font:inherit}.profile-report-dialog .report-actions{display:flex;justify-content:end;gap:9px;margin-top:18px}.profile-report-dialog button{padding:10px 15px;border:1px solid #596779;border-radius:8px;background:#25313d;color:#fff}.profile-report-dialog [type=submit]{background:#43c9ae;color:#10211e;font-weight:700}.profile-report-dialog .form-trap{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
 .account-actions{flex-wrap:wrap}.profile-tool [data-domain-content] h3{overflow-wrap:anywhere}.profile-tool [data-domain-content] p{overflow-wrap:anywhere}.profile-tool [data-domain-content] button{margin:6px 8px 6px 0}.profile-tool .domain-remove{display:block;margin-top:20px!important;border-color:#b97878;color:#ffcaca}
 
+/* Keep the sample canvas out of sight until a first-time visitor chooses a page. */
+body:has(.welcome-dialog[open]) #app{visibility:hidden}
+.welcome-dialog .welcome-intro{color:var(--muted);font-size:13px;line-height:1.6}
+.welcome-dialog .welcome-first-link{margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
+.welcome-dialog .welcome-first-link>strong{font-size:13px}.welcome-dialog .welcome-first-link small{font-size:11px;color:var(--muted);font-weight:400}
+.welcome-dialog .welcome-options{margin-top:16px;padding:13px 15px;border:1px solid var(--border);border-radius:9px}
+.welcome-dialog .welcome-options summary{cursor:pointer;font-size:13px;font-weight:600}.welcome-dialog .welcome-options summary span{float:right;color:var(--muted);font-size:11px;font-weight:400}
+.welcome-dialog .welcome-options .welcome-choices{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:15px 0}
+.welcome-dialog .welcome-options .welcome-choices button{padding:12px;gap:4px}.welcome-dialog .welcome-options .welcome-choices strong{font-size:12px}.welcome-dialog .welcome-options .welcome-choices small{font-size:10px}
+.welcome-dialog .welcome-navigation{justify-content:flex-start;margin-top:15px}.welcome-dialog .welcome-navigation button{font-size:13px}
+.page-state{padding:7px 10px;border-color:#3c4655;color:#c5d1df;font-size:11px;white-space:nowrap}
+.page-state[data-state=live]{border-color:#3a6756;color:#a8dfc7;background:#1a2a24}.page-state[data-state=hidden]{border-color:#8c5a57;color:#ffd2c8}.page-state[data-state=unknown]{border-color:#8c784d;color:#f8dfab}
+.draft[data-state=live]{color:#9bd8bb;border-color:#42735d}.draft[data-state=hidden]{color:#ffb9b1;border-color:#a9605b}
+.first-steps{display:flex;align-items:center;gap:16px}.first-steps>div:first-child{margin:0;flex:1;min-width:0}.first-steps>div>span{margin-left:auto}.first-steps p{flex:1;margin:0;color:#a6b2c4;font-size:11px}.first-step-next{display:flex;align-items:center;gap:7px;padding:9px 13px;border-color:var(--accent);font-size:11px;white-space:nowrap}.first-step-next .ui-icon{width:15px;height:15px}
+[data-editor-theme=light] .page-state{color:#28405e;background:#f8fafd;border-color:#cad6e6}[data-editor-theme=light] .page-state[data-state=live]{color:#245e44;background:#eaf8f0;border-color:#a8d3b8}
+[data-editor-theme=light] .first-steps p{color:#566a85}
+@media(max-width:700px){.first-steps{display:flex;flex-wrap:wrap;gap:8px}.first-steps>div:first-child{flex-basis:100%}.first-steps p{flex-basis:100%}.first-step-next{width:100%;justify-content:center;min-height:42px}.topbar .top-actions #page-state{grid-column:1/3;grid-row:2;min-height:22px;padding:2px 5px;font-size:10px;justify-self:start}.topbar .top-actions #save-status{grid-column:3/5;grid-row:2;justify-self:end;max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.welcome-dialog .welcome-options .welcome-choices{grid-template-columns:1fr}.welcome-dialog .welcome-options .welcome-choices button{padding:8px}}
+
 /* Keep the sample unmistakable while the editor still contains Alex Morgan's page. */
 .starter-notice{max-width:1110px;margin:0 auto 12px;padding:15px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid #73583f;border-radius:10px;background:#2b241d;color:#f7e7d0}
 .starter-notice strong{font-size:13px}.starter-notice p{margin:4px 0 0;color:#d9c7ae;font-size:12px;line-height:1.5}
@@ -240,3 +258,8 @@
 .personal-page:is(.classic-page,.editorial-page,.showcase-page) .card.featured{background:var(--page-surface);border:1px solid var(--accent);border-radius:var(--radius);padding:var(--card-padding,24px)}
 .personal-page:is(.editorial-page,.showcase-page) .card.section{background:transparent;border:0;box-shadow:none;padding:0}
 @container(max-width:480px){.personal-page.classic-page .card.section{width:calc(100% - 40px);margin-inline:20px}}
+@media(max-width:700px){
+ .topbar .top-actions #page-state{grid-column:1/3;grid-row:2;display:inline-flex;align-items:center;min-height:22px;padding:2px 5px;font-size:10px;justify-self:start}
+ .topbar .top-actions #save-status{grid-column:3/5;grid-row:2;justify-self:end;max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .mobile-preview .topbar .top-actions #page-state{display:none}
+}

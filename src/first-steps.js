@@ -3,8 +3,12 @@ export function starterNotice(state){
  if(!state.starterSample||state.name!=='Alex Morgan')return '';
  return `<section class="starter-notice" aria-label="Example page"><div><strong>This is an example page.</strong><p>Alex Morgan and these cards are sample content. Add your own details before publishing.</p></div><button id="start-my-page" type="button">Set up my page ${icon('arrow')}</button></section>`;
 }
-export function firstSteps(state){const progress=state.onboarding||{};const steps=[['name','Your name'],['photo','A photo'],['link','A link'],['preview','Preview']];if(progress.dismissed||steps.every(([id])=>progress[id]))return '';
- return `<section class="first-steps" aria-label="Getting started"><div><strong>Make yourself at home.</strong><span>${steps.filter(([id])=>progress[id]).length} of 4 ready</span><button id="dismiss-steps" aria-label="Dismiss getting started">${icon('close')}</button></div><div class="first-step-buttons">${steps.map(([id,label])=>`<button data-first-step="${id}" ${progress[id]?'disabled':''}>${icon(progress[id]?'check':{name:'intro',photo:'photo',link:'link',preview:'eye'}[id])}<span>${label}</span></button>`).join('')}</div></section>`;
+export function firstSteps(state){const progress=state.onboarding||{};if(progress.dismissed)return '';
+ const steps=[['name','Add your name','Use your own name or page title.','intro'],['link','Add a link','Give visitors somewhere to go.','link'],['preview','Preview your page','See what visitors will see.','eye']];
+ const done=steps.filter(([id])=>progress[id]).length;
+ const next=steps.find(([id])=>!progress[id]);
+ const [id,label,detail,glyph]=next||['publish','Review and publish','Your private draft is ready to share.','arrow'];
+ return `<section class="first-steps" aria-label="Next step"><div><strong>${next?'One step at a time':'Ready to share'}</strong><span>${done} of 3 basics done</span><button id="dismiss-steps" aria-label="Dismiss getting started">${icon('close')}</button></div><p>${detail}</p><button class="first-step-next" data-first-step="${id}">${icon(glyph)}<span>${label}</span></button></section>`;
 }
 export function markProgress(state,previous){const progress=state.onboarding||{};
  if(state.name!==previous.name&&state.name?.trim())progress.name=true;

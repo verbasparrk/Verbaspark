@@ -23,14 +23,14 @@ test('link presentation choices keep accessible destinations and export their st
  await page.locator('#preview').click();await expect(page.getByRole('link',{name:'GitHub',exact:true})).toHaveAttribute('href','https://github.com');
  const pending=page.waitForEvent('download');await page.locator('#page-menu-toggle').click();await page.locator('#export').click();const file=await pending;const stream=await file.createReadStream();let html='';for await(const chunk of stream)html+=chunk;expect(html).toContain('link-style-wide');
 });
-test('first steps reflect actual edits and disappear after completion',async({page})=>{
+test('one next step leads through editing to publication review',async({page})=>{
  await page.goto('/editor/');await page.locator('[data-first-step="name"]').click();await page.locator('#card-title').fill('My own page');await page.locator('#card-title').press('Tab');
- await expect(page.locator('[data-first-step="name"]')).toBeDisabled();
- await page.locator('[data-first-step="photo"]').click();const png=Buffer.from(await page.evaluate(()=>{const c=document.createElement('canvas');c.width=20;c.height=20;c.getContext('2d').fillRect(0,0,20,20);return c.toDataURL('image/png').split(',')[1]}),'base64');
- await page.locator('#photo-upload').setInputFiles({name:'photo.png',mimeType:'image/png',buffer:png});await expect(page.locator('[data-first-step="photo"]')).toBeDisabled();
+ await expect(page.locator('[data-first-step="link"]')).toBeVisible();
  await page.locator('[data-first-step="link"]').click();await page.locator('[name="destination"]').fill('example.org/me');await page.getByRole('button',{name:'Add to my page'}).click();
- await expect(page.locator('[data-first-step="link"]')).toBeDisabled();await page.locator('[data-first-step="preview"]').click();await page.locator('#preview').click();
- await expect(page.locator('.first-steps')).toHaveCount(0);await page.reload();await expect(page.locator('.first-steps')).toHaveCount(0);
+ await expect(page.locator('[data-first-step="preview"]')).toBeVisible();await page.locator('[data-first-step="preview"]').click();await page.locator('#preview').click();
+ await expect(page.locator('[data-first-step="publish"]')).toBeVisible();await page.locator('[data-first-step="publish"]').click();
+ await expect(page.locator('.publish-review')).toBeVisible();await page.locator('.review-close').click();
+ await page.reload();await expect(page.locator('[data-first-step="publish"]')).toBeVisible();
 });
 
 test.beforeEach(async({page})=>{await page.addInitScript(()=>localStorage.setItem('verbaspark-welcome-dismissed','1'))});

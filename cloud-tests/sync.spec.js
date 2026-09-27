@@ -67,16 +67,18 @@ test('owner can read private inbox and aggregate link performance',async({page})
 test('dashboard tracks publication, sharing and unpublished edits on desktop and mobile',async({page})=>{
  const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
  const open=async()=>{await page.locator('#page-menu-toggle').click();await page.locator('#dashboard').click()};
- await open();await expect(page.locator('#publication-status')).toHaveText('Not published');await expect(page.locator('#dashboard-sharing')).toBeHidden();await expect(page.locator('#dashboard-sync-detail')).toContainText('alice@example.com');await expect(page.locator('#dashboard-load')).toBeVisible();await page.locator('#dashboard-edit').click();
+ await expect(page.locator('#page-state')).toHaveText('Private draft');
+ await page.locator('#page-state').click();await expect(page.locator('#publication-status')).toHaveText('Not published');await expect(page.locator('#dashboard-sharing')).toBeHidden();await expect(page.locator('#dashboard-sync-detail')).toContainText('alice@example.com');await expect(page.locator('#dashboard-load')).toBeVisible();await page.locator('#dashboard-edit').click();
  await page.locator('#page-menu-toggle').click();await page.locator('#account').click();await page.locator('#publish-slug').fill('alice');await page.locator('#cloud-publish').click();await page.locator('#review-continue').click();await expect.poll(()=>server.published?.slug).toBe('alice');await page.locator('.account-close').click();
+ await expect(page.locator('#page-state')).toHaveText('Live');
  await open();await expect(page.locator('#publication-status')).toHaveText('Published · up to date');await expect(page.locator('#dashboard-open')).toHaveAttribute('href',/\/p\/alice$/);
  await page.locator('.dashboard-qr summary').click();await expect(page.locator('#dashboard-qr')).toHaveAttribute('src',/^data:image\/png;base64,/);
  const download=page.waitForEvent('download');await page.locator('#dashboard-download').click();expect((await download).suggestedFilename()).toBe('verbaspark-qr.png');
  await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.copiedLink=text}}}));await page.locator('#dashboard-copy').click();await expect(page.locator('#dashboard-message')).toHaveText('Link copied.');expect(await page.evaluate(()=>window.copiedLink)).toMatch(/\/p\/alice$/);
- await page.locator('#dashboard-edit').click();await page.locator('#card-title').fill('A new title');await page.locator('#card-title').press('Tab');await open();await expect(page.locator('#publication-status')).toHaveText('Unpublished changes');
+ await page.locator('#dashboard-edit').click();await page.locator('#card-title').fill('A new title');await page.locator('#card-title').press('Tab');await expect(page.locator('#page-state')).toHaveText('Unpublished changes');await open();await expect(page.locator('#publication-status')).toHaveText('Unpublished changes');
  await page.setViewportSize({width:390,height:844});await expect(page.locator('.page-dashboard')).toBeVisible();expect(await page.locator('.page-dashboard').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);await page.screenshot({path:'test-results/dashboard-mobile.png'});
  await page.locator('#dashboard-account').click();await page.locator('#cloud-unpublish').click();await expect(page.locator('.account-dialog [role=status]')).toContainText('unpublished');await page.locator('.account-close').click();
- await page.setViewportSize({width:1280,height:800});await open();await expect(page.locator('#publication-status')).toHaveText('Not published');await expect(page.locator('#dashboard-sharing')).toBeHidden();
+ await page.setViewportSize({width:1280,height:800});await expect(page.locator('#page-state')).toHaveText('Private draft');await open();await expect(page.locator('#publication-status')).toHaveText('Not published');await expect(page.locator('#dashboard-sharing')).toBeHidden();
 });
 test('dashboard loads the online draft after another device changes it',async({page})=>{
  const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
@@ -144,8 +146,8 @@ test('successful account deletion clears this device and returns home',async({pa
  expect(await page.evaluate(()=>localStorage.getItem('sb-127-auth-token'))).toBeNull();
  expect(await page.evaluate(()=>new Promise((resolve,reject)=>{const request=indexedDB.open('verbaspark-recovery',1);request.onsuccess=()=>{const tx=request.result.transaction('snapshots','readonly'),count=tx.objectStore('snapshots').count();count.onsuccess=()=>resolve(count.result);count.onerror=()=>reject(count.error)}}))).toBe(0);
 });
-async function mockCloud(page,{accountDelay=0}={}){let draft=null,published=null,restriction=null,fail=false,saves=0;const files=new Set();let inbox=[{id:'message1',name:'Visitor',email:'visitor@example.com',message:'A private enquiry',status:'new',created_at:new Date().toISOString()}];const token=['eyJhbGciOiJIUzI1NiJ9',Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url'),'mock-signature'].join('.');
- await page.addInitScript(({user,token})=>{if(!sessionStorage.getItem('mock-cloud-seeded')){localStorage.setItem('sb-127-auth-token',JSON.stringify({access_token:token,refresh_token:'mock-refresh',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user}));sessionStorage.setItem('mock-cloud-seeded','1')}},{user,token});
+async function mockCloud(page,{accountDelay=0,initialDraft=null,welcome=false}={}){let draft=initialDraft?{document:initialDraft,revision:1,last_save_id:'remote'}:null,published=null,restriction=null,fail=false,saves=0;const files=new Set();let inbox=[{id:'message1',name:'Visitor',email:'visitor@example.com',message:'A private enquiry',status:'new',created_at:new Date().toISOString()}];const token=['eyJhbGciOiJIUzI1NiJ9',Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url'),'mock-signature'].join('.');
+ await page.addInitScript(({user,token,welcome})=>{if(!sessionStorage.getItem('mock-cloud-seeded')){localStorage.setItem('sb-127-auth-token',JSON.stringify({access_token:token,refresh_token:'mock-refresh',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user}));sessionStorage.setItem('mock-cloud-seeded','1')}if(!welcome)localStorage.setItem('verbaspark-welcome-dismissed','1')},{user,token,welcome});
  await page.route('http://127.0.0.1:59999/**',async route=>{const path=new URL(route.request().url()).pathname;const reply=body=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
   if(path==='/auth/v1/user')return reply(user);
   if(path==='/auth/v1/logout')return reply({});
@@ -173,6 +175,23 @@ async function mockCloud(page,{accountDelay=0}={}){let draft=null,published=null
   return route.fulfill({status:404,body:'Unknown mock endpoint '+path});
  });return {publish:document=>{published={slug:'alice',document}},files,get draft(){return draft},get published(){return published},get saves(){return saves},fail:value=>{fail=value},restrict:reason=>{restriction=reason},overwrite:document=>{draft={document,revision:draft.revision+1,last_save_id:'remote'}}};
 }
+test('a returning owner opens their online draft directly on a new device',async({page})=>{
+ const server=await mockCloud(page,{initialDraft:{name:'Lea Online',cards:[{id:'intro',type:'intro',size:'wide',title:'Lea Online',body:'My saved page'}]}});
+ await page.goto('/editor/');await expect(page.locator('.welcome-dialog')).toHaveCount(0);
+ await expect(page.locator('.intro h2')).toHaveText('Lea Online');
+ await expect(page.locator('#save-status')).toContainText('Saved online');
+ expect(server.saves).toBe(0);
+});
+
+test('a signed-in first-time owner completes setup before any sample draft syncs',async({page})=>{
+ const server=await mockCloud(page,{welcome:true});await page.goto('/editor/');
+ await expect(page.locator('.welcome-dialog')).toBeVisible();
+ await page.waitForTimeout(1200);expect(server.saves).toBe(0);
+ await page.locator('#welcome-name').fill('Ana First');await page.locator('#welcome-next').click();
+ await expect(page.locator('.intro h2')).toHaveText('Ana First');
+ await expect.poll(()=>server.draft?.document.name).toBe('Ana First');
+});
+
 test('real client autosaves, retries offline edits and keeps publication separate',async({page})=>{
  const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
  await page.locator('#card-title').fill('Auto saved project');await page.locator('#card-title').press('Tab');

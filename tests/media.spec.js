@@ -1,6 +1,10 @@
 import {test,expect} from '@playwright/test';
 import fs from 'node:fs/promises';
 const pdf=Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 0/Kids[]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF');
+function twoPagePdf(){
+ const pages=['First page','Second page'],objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>',...pages.map((_,i)=>`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 220] /Resources << /Font << /F1 7 0 R >> >> /Contents ${i+5} 0 R >>`),...pages.map(label=>{const stream=`BT /F1 22 Tf 30 120 Td (${label}) Tj ET`;return `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`}),'<</Type /Font /Subtype /Type1 /BaseFont /Helvetica>>'];
+ let output='%PDF-1.4\n';const offsets=[0];objects.forEach((body,index)=>{offsets.push(Buffer.byteLength(output));output+=`${index+1} 0 obj\n${body}\nendobj\n`});const start=Buffer.byteLength(output);output+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;for(const offset of offsets.slice(1))output+=`${String(offset).padStart(10,'0')} 00000 n \n`;output+=`trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${start}\n%%EOF`;return Buffer.from(output);
+}
 const add=async(page,type)=>{await page.locator('[data-tab="blocks"]').click();await page.locator(`[data-add="${type}"]`).click()};
 test('PDF and catalog upload, recovery, preview and standalone download',async({page})=>{
  await page.goto('/editor/');await add(page,'catalog');await page.locator('#file-upload').setInputFiles({name:'menu.pdf',mimeType:'application/pdf',buffer:pdf});
@@ -12,6 +16,14 @@ test('PDF and catalog upload, recovery, preview and standalone download',async({
  await page.locator('#page-menu-toggle').click();const exported=page.waitForEvent('download');await page.locator('#export').click();const html=await fs.readFile(await (await exported).path(),'utf8');expect(html).toContain('data:application/pdf;base64,');
  await page.setContent(html);await page.locator('[data-media="pdf"]').click();await expect(page.locator('.document-dialog')).toBeVisible();await page.keyboard.press('Escape');
  const downloaded=page.waitForEvent('download');await page.locator('.catalog [data-file-download]').click();expect(await fs.readFile(await (await downloaded).path())).toEqual(pdf);
+});
+test('catalog PDF pages can be browsed as a slider and retain the full PDF',async({page})=>{
+ await page.goto('/editor/');await add(page,'catalog');await page.locator('#file-upload').setInputFiles({name:'catalog.pdf',mimeType:'application/pdf',buffer:twoPagePdf()});
+ await page.locator('#catalog-mode').selectOption('slider');await page.locator('.pdf-catalog').scrollIntoViewIfNeeded();await expect(page.locator('.pdf-catalog-position')).toHaveText('1 / 2');
+ await page.reload();await page.locator('.card.catalog').click();await expect(page.locator('#catalog-mode')).toHaveValue('slider');await page.locator('#preview').click();
+ const catalog=page.locator('.catalog .pdf-catalog');await catalog.scrollIntoViewIfNeeded();await expect(catalog.locator('.pdf-catalog-position')).toHaveText('1 / 2');await expect(catalog.locator('canvas')).toBeVisible();await catalog.locator('[data-pdf-step="1"]').click();await expect(catalog.locator('.pdf-catalog-position')).toHaveText('2 / 2');
+ await catalog.focus();await page.keyboard.press('ArrowLeft');await expect(catalog.locator('.pdf-catalog-position')).toHaveText('1 / 2');
+ const downloaded=page.waitForEvent('download');await page.locator('.catalog [data-file-download]').click();expect(await fs.readFile(await (await downloaded).path())).toEqual(twoPagePdf());
 });
 test('video and map load only on request; audio remains controllable on phones',async({page})=>{
  await page.route('https://www.youtube-nocookie.com/**',r=>r.fulfill({body:'<html>Video player</html>',contentType:'text/html'}));await page.route('https://www.openstreetmap.org/**',r=>r.fulfill({body:'<html>Map</html>',contentType:'text/html'}));

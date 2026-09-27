@@ -22,7 +22,7 @@ export function reviewPage(state){
   if(card.type==='photo'&&!imageSource(card.image))add('error',card.imagePath?'Photo access is unavailable. Load your online draft to refresh it.':'Add a photo or hide this block.',card,'photo-upload');
   if(card.type==='gallery'){if(!card.images?.length)add('error','Add photos or hide this empty gallery.',card,'gallery-upload');else if(card.images.some(p=>!imageSource(p.image)))add('error','Some gallery photos are unavailable. Replace them or refresh your online draft.',card,'gallery-upload')}
   if(['document','catalog','audio'].includes(card.type)&&!fileSource(card.file?.src))add('error',card.file?.path?'File access is unavailable. Load your online draft to refresh it.':'Upload a file or add a direct file link.',card,'file-upload');
-  if(card.type==='catalog'&&!imageSource(card.image))add('warning','Add a cover image to help your catalog stand out.',card,'photo-upload');
+  if(card.type==='catalog'&&card.catalogMode!=='slider'&&!imageSource(card.image))add('warning','Add a cover image to help your catalog stand out.',card,'photo-upload');
   if(card.type==='location'){const location=locationURLs(card);if(!location)add('error','Add an address or a map location.',card,'location-address');else if(card.mapMode!=='link'&&!location.embed)add('warning','Only navigation is available. Add a map embed, or choose navigation only.',card,'map-embed')}
  }
  return {issues,errors:issues.filter(i=>i.severity==='error').length,warnings:issues.filter(i=>i.severity==='warning').length,visible:cards.length,hidden:state.cards.length-cards.length};

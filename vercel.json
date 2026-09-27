@@ -8,6 +8,7 @@
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/robots.txt", "destination": "/api/sitemap?format=robots" },
     { "source": "/api/report", "destination": "/api/reports?public=1" },
+    { "source": "/api/geocode", "destination": "/api/cover?geocode=1" },
     { "source": "/examples/photographer/", "destination": "/examples/photographer/index.html" },
     { "source": "/examples/developer/", "destination": "/examples/developer/index.html" },
     { "source": "/examples/personal/", "destination": "/examples/personal/index.html" },

@@ -5,6 +5,7 @@ import {cleanFile,fileSource,prepareFile,pageFileBytes,FILE_LIMIT,PAGE_FILE_LIMI
 import {cleanPage} from '../src/page-data.js';
 import {mapEmbedSource,mapEmbedCoordinates,addressEmbed,mapTiles} from '../src/maps.js';
 import {photonSuggestions} from '../server/geocode.js';
+import coverHandler from '../api/cover.js';
 test('map sources restrict embeds and encode address-based maps',()=>{
  assert.equal(mapEmbedSource('<iframe src="https://www.google.com/maps/embed?pb=abc"></iframe>'),'https://www.google.com/maps/embed?pb=abc');
  assert.equal(mapEmbedSource('https://www.google.com.evil.test/maps/embed?pb=abc'),'');
@@ -31,6 +32,12 @@ test('small map preview uses nine nearby tiles and geocoder results are safe and
  assert.equal(tiles.length,9);assert.ok(tiles.every(tile=>/^https:\/\/tile\.openstreetmap\.org\/14\/\d+\/\d+\.png$/.test(tile.url)));
  const suggestions=photonSuggestions({features:[{geometry:{coordinates:[14.5058,46.0569]},properties:{street:'Vajdova cesta',housenumber:'23',city:'Semič',country:'Slovenia'}},{geometry:{coordinates:[Infinity,46]},properties:{name:'Invalid'}}]});
  assert.deepEqual(suggestions,[{label:'Vajdova cesta 23, Semič, Slovenia',lng:14.5058,lat:46.0569}]);
+});
+test('address search shares an existing API function and rejects short queries',async()=>{
+ let status,output;
+ const response={status(code){status=code;return this},json(value){output=value;return this},end(){return this}};
+ await coverHandler({method:'GET',query:{geocode:'1',q:'a'}},response);
+ assert.equal(status,400);assert.match(output.error,/at least 3 characters/);
 });
 test('new blocks and attachments survive document sanitization',()=>{
  const page=cleanPage({cards:[{type:'document',title:'PDF',file:{name:'cv.pdf',size:10,mime:'application/pdf',src:'data:application/pdf;base64,JVBERi0='}},{type:'location',address:'Ljubljana',latitude:46,longitude:14},{type:'audio'},{type:'catalog'}]});

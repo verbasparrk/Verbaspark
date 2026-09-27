@@ -1,5 +1,7 @@
 import {publicReader,published} from '../server/platform.js';
+import {handleGeocode} from '../server/geocode.js';
 export default async function handler(req,res){
+ if(req.query?.geocode==='1')return handleGeocode(req,res);
  res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
  if(!['GET','HEAD'].includes(req.method))return res.status(405).end();
  try{const db=publicReader(),page=await published(db,req.query.slug),path=page.document.profile?.seo?.imagePath;

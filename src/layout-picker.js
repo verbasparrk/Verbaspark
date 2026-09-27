@@ -8,7 +8,7 @@ export async function mountLayoutPreviews(state,pageHTML,styleString){
  for(const [id,label] of Object.entries(layouts)){
   const frame=root.querySelector(`[data-layout-choice="${id}"] iframe`);
   const sample={...state,layout:id,cards:state.cards.filter(c=>!c.hidden)};
-  frame.srcdoc=`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}html,body{overflow:hidden}body.export-page{width:800px;margin:0;min-height:600px}.personal-page{min-height:600px}</style></head><body class="export-page" style="${styleString(sample).replaceAll('"','&quot;')}">${pageHTML(false,sample)}</body></html>`;
+  frame.srcdoc=`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}html,body{overflow:hidden}body.export-page{width:800px;margin:0;min-height:600px}.personal-page{min-height:600px}</style></head><body class="export-page" style="${styleString(sample).replaceAll('"','&quot;')}">${pageHTML(false,sample,true)}</body></html>`;
   frame.title=`${label} preview of your page`;
  }
 }

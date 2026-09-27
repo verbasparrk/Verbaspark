@@ -2,7 +2,7 @@ import {cloud} from './cloud.js';
 import {publicationFingerprint} from './publication-state.js';
 import {icon} from './icons.js';
 
-export function openDashboard(getState,{edit,account,publish,onlineDraft}){
+export function openDashboard(getState,{edit,account,publish,syncStatus,refreshDraft,resolveSync}){
  const dialog=document.createElement('dialog');
  dialog.className='account-dialog page-dashboard';
  dialog.setAttribute('aria-labelledby','dashboard-heading');
@@ -10,7 +10,7 @@ export function openDashboard(getState,{edit,account,publish,onlineDraft}){
   <span class="eyebrow">YOUR WORKSPACE</span><h2 id="dashboard-heading">My page</h2>
   <section class="dashboard-summary"><span id="publication-status" class="publication-status">Checking publication…</span><h3 id="dashboard-name"></h3><p id="publication-detail"></p></section>
   <div class="dashboard-actions"><button id="dashboard-edit">${icon('edit')} Edit page</button><button id="dashboard-publish" class="primary">${icon('arrow')} Publish page</button></div>
-  <section class="dashboard-sync"><h3>Work across devices</h3><p id="dashboard-sync-detail">Checking your online draft…</p><button id="dashboard-load" hidden>Load online draft</button><p class="hint">On another device, sign in with the same email. Your current device version stays in Save & recovery when you load the online draft.</p></section>
+  <section class="dashboard-sync"><h3>Work across devices</h3><p id="dashboard-sync-detail">Checking your online draft…</p><button id="dashboard-resolve" hidden>Choose a version</button><p class="hint">Sign in with the same email on another device. Your draft saves automatically; publishing remains your choice.</p></section>
   <section id="dashboard-sharing" hidden><h3>Share your page</h3><label>Public link<input id="dashboard-url" readonly></label><div class="dashboard-actions"><a id="dashboard-open" target="_blank" rel="noopener">${icon('arrow')} Open profile</a><button id="dashboard-copy">${icon('copy')} Copy link</button></div><details class="dashboard-qr"><summary>QR code for sharing</summary><div class="qr-content"><img id="dashboard-qr" alt="QR code linking to your published profile" width="224" height="224"><a id="dashboard-download" download="verbaspark-qr.png">${icon('download')} Download QR code</a></div></details></section>
   <p id="dashboard-message" role="status"></p><div class="dashboard-footer"><button id="dashboard-account">Account & publishing</button><button id="dashboard-refresh">${icon('refresh')} Refresh status</button></div>`;
  document.body.append(dialog);
@@ -22,10 +22,7 @@ export function openDashboard(getState,{edit,account,publish,onlineDraft}){
  find('dashboard-edit').onclick=leave(edit);
  find('dashboard-account').onclick=leave(account);
  find('dashboard-publish').onclick=leave(publish);
- find('dashboard-load').onclick=async()=>{
-  const button=find('dashboard-load');button.disabled=true;find('dashboard-message').textContent='Loading your online draft…';
-  try{await onlineDraft();dialog.close()}catch(error){button.disabled=false;find('dashboard-message').textContent=error.message}
- };
+ find('dashboard-resolve').onclick=leave(resolveSync);
  const subscription=cloud?.auth.onAuthStateChange(event=>{if(['SIGNED_OUT','SIGNED_IN'].includes(event))refresh()}).data.subscription;
  dialog.onclose=()=>{generation++;subscription?.unsubscribe();dialog.remove()};
  async function refresh(){
@@ -34,7 +31,7 @@ export function openDashboard(getState,{edit,account,publish,onlineDraft}){
   find('dashboard-name').textContent=getState().name||'Untitled page';
   find('dashboard-sharing').hidden=true;
   find('dashboard-publish').hidden=true;
-  find('dashboard-load').hidden=true;
+  find('dashboard-resolve').hidden=true;
   find('dashboard-message').textContent='';
   find('dashboard-sync-detail').textContent='Checking your online draft…';
   status.textContent='Checking publication…';status.dataset.state='checking';detail.textContent='';
@@ -59,11 +56,12 @@ export function openDashboard(getState,{edit,account,publish,onlineDraft}){
     cloud.from('profile_domains').select('hostname,status').eq('owner_id',user.id).maybeSingle()
    ]);
    if(!current())return;
-   if(draftResult.error)find('dashboard-sync-detail').textContent='Could not check your online draft. Try Refresh status.';
-   else if(draftResult.data){
-    find('dashboard-sync-detail').textContent=`An online draft is available for ${user.email}. Sign in with this email on another device to continue editing.`;
-    find('dashboard-load').hidden=false;
-   }else find('dashboard-sync-detail').textContent=`Signed in as ${user.email}. Your first online save is still pending.`;
+   const sync=syncStatus();
+   if(sync.blocked){find('dashboard-sync-detail').textContent='Two versions of this page are available. Choose which one to continue editing.';find('dashboard-resolve').hidden=false}
+   else if(draftResult.error)find('dashboard-sync-detail').textContent='Could not check your online draft. Try Refresh status.';
+   else if(sync.cloud==='saved'&&draftResult.data)find('dashboard-sync-detail').textContent=`Your private draft is saved online as ${user.email}. Open the editor on another device and sign in with the same email.`;
+   else if(draftResult.data)find('dashboard-sync-detail').textContent='Your draft is available online. Pending changes will save automatically.';
+   else find('dashboard-sync-detail').textContent='Your first online save is still pending.';
    if(result.error)throw result.error;
    const row=result.data;
    if(!restrictionResult.error&&restrictionResult.data){
@@ -98,6 +96,6 @@ export function openDashboard(getState,{edit,account,publish,onlineDraft}){
    }catch{if(current())find('dashboard-message').textContent='QR code could not be generated. You can still copy the link.'}
   }catch(error){if(current()){status.textContent='Status unavailable';status.dataset.state='changes';detail.textContent='Could not check your published page. Your draft is still available.';find('dashboard-message').textContent=error.message}}
  }
- find('dashboard-refresh').onclick=refresh;
+ find('dashboard-refresh').onclick=async()=>{try{await refreshDraft()}catch(error){find('dashboard-message').textContent=error.message}await refresh()};
  refresh();
 }

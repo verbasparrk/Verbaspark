@@ -1,16 +1,18 @@
 // Storage and remote transport are injected so failures and races can be tested without a live account.
 export class Autosave{
  constructor({store,remote,onStatus=()=>{},delay=1000,retryDelay=5000,online=()=>navigator.onLine}){
-  Object.assign(this,{store,remote,onStatus,delay,retryDelay,online});this.row=null;this.user=null;this.block=null;this.cloudState='local';this.localState='saved';this.error='';this.localQueue=Promise.resolve();this.running=null;this.timer=null;this.epoch=0;this.seq=0;this.savedLocalId=null;
+  Object.assign(this,{store,remote,onStatus,delay,retryDelay,online});this.row=null;this.user=null;this.block=null;this.remoteAvailable=false;this.cloudState='local';this.localState='saved';this.error='';this.localQueue=Promise.resolve();this.running=null;this.timer=null;this.epoch=0;this.seq=0;this.savedLocalId=null;
  }
  notify(){this.onStatus(this.status())}
  status(){return {local:this.localState,cloud:this.cloudState,error:this.error,blocked:this.block,connected:!!this.user,pending:!!this.row&&this.row.id!==this.row.syncedId,localDurable:!!this.row&&this.savedLocalId===this.row.id}}
- async start(document){const rows=await this.store.list();this.isNew=!rows.length;this.row=rows[0]||{id:crypto.randomUUID(),time:Date.now(),document:structuredClone(document),owner:null,revision:null,syncedId:null};this.seq=this.row.time;this.savedLocalId=rows.length?this.row.id:null;if(!rows.length)await this.persist();this.notify();return structuredClone(this.row.document)}
+ async start(document,{pristine=false}={}){const rows=await this.store.list();this.isNew=!rows.length;this.initialPristine=this.isNew&&pristine;this.row=rows[0]||{id:crypto.randomUUID(),time:Date.now(),document:structuredClone(document),owner:null,revision:null,syncedId:null};this.initialId=this.row.id;this.seq=this.row.time;this.savedLocalId=rows.length?this.row.id:null;if(!rows.length)await this.persist();this.notify();return structuredClone(this.row.document)}
+ isPristine(){return this.initialPristine&&this.row?.id===this.initialId&&!this.row.owner}
+ canUseOnlineWithoutChoice(){return this.remoteAvailable&&((this.block==='choose'&&this.isPristine())||(this.block==='conflict'&&this.row.owner===this.user?.id&&this.row.id===this.row.syncedId))}
  persist(){const snapshot=structuredClone(this.row);this.localState='saving';this.notify();this.localQueue=this.localQueue.catch(()=>{}).then(async()=>{try{await this.store.write(snapshot);if(this.row.id===snapshot.id){this.savedLocalId=snapshot.id;this.localState='saved';}}catch{if(this.row.id===snapshot.id){this.localState='error';this.error='Device storage is full or unavailable. Your changes are still open here. Download a backup before leaving.';}}this.notify()});return this.localQueue}
  edit(document){this.seq=Math.max(Date.now(),this.seq+1);this.row={...this.row,id:crypto.randomUUID(),time:this.seq,document:structuredClone(document)};this.persist();this.schedule()}
- async connect(user){if(this.user?.id===user?.id)return;this.epoch++;this.user=user;clearTimeout(this.timer);this.block=null;this.error='';if(!user){this.cloudState='local';this.notify();return}
+ async connect(user){if(this.user?.id===user?.id)return;this.epoch++;this.user=user;clearTimeout(this.timer);this.block=null;this.remoteAvailable=false;this.error='';if(!user){this.cloudState='local';this.notify();return}
   const epoch=this.epoch;this.cloudState='checking';this.notify();
-  try{if(!this.online())throw Error('You are offline.');const remote=await this.remote.read(user.id);if(epoch!==this.epoch)return;
+  try{if(!this.online())throw Error('You are offline.');const remote=await this.remote.read(user.id);if(epoch!==this.epoch)return;this.remoteAvailable=!!remote;
    if(this.row.owner&&this.row.owner!==user.id){this.block='account';}
    else if(remote&&this.row.owner!==user.id){this.block='choose';}
    else if(remote&&this.row.revision!==remote.revision){
@@ -32,8 +34,17 @@ export class Autosave{
     else{this.cloudState=this.online()?'error':'offline';this.error=error.message||'Online saving failed.';this.timer=setTimeout(()=>this.flush().catch(()=>{}),this.retryDelay)}this.notify();throw error}
    finally{this.running=null}})();await this.running;if(epoch!==this.epoch)throw Error('Account changed. Save again in the current account.');if(this.row.id!==this.row.syncedId)return this.flush();return this.row.revision;
  }
- async chooseLocal(){if(!this.user)throw Error('Sign in first.');if(this.running)await this.running.catch(()=>{});const epoch=this.epoch;const row=await this.remote.read(this.user.id);if(epoch!==this.epoch)throw Error('Account changed.');this.row.owner=this.user.id;this.row.revision=row?.revision??null;this.row.syncedId=null;this.block=null;this.error='';await this.persist();return this.flush()}
- async loadOnline(){if(!this.user)throw Error('Sign in first.');if(this.running)await this.running.catch(()=>{});const epoch=this.epoch;clearTimeout(this.timer);await this.persist();if(this.localState==='error')throw Error('Download a backup before replacing your unsaved local draft.');const row=await this.remote.read(this.user.id);if(epoch!==this.epoch)throw Error('Account changed.');if(!row)throw Error('No online draft exists yet.');const document=await this.remote.resolve(row.document);if(epoch!==this.epoch)throw Error('Account changed.');this.seq=Math.max(Date.now(),this.seq+1);this.row={id:crypto.randomUUID(),time:this.seq,document,owner:this.user.id,revision:row.revision,syncedId:null};this.row.syncedId=this.row.id;this.block=null;this.error='';await this.persist();this.cloudState='saved';this.notify();return structuredClone(document)}
+ async chooseLocal(){if(!this.user)throw Error('Sign in first.');if(this.running)await this.running.catch(()=>{});const epoch=this.epoch,localId=this.row.id;const row=await this.remote.read(this.user.id);if(epoch!==this.epoch)throw Error('Account changed.');
+  if(row){const document=await this.remote.resolve(row.document);if(epoch!==this.epoch)throw Error('Account changed.');if(this.row.id!==localId)throw Error('This draft changed while preparing the online backup. Try again.');const result=await this.store.write({id:crypto.randomUUID(),time:this.row.time-1,document,owner:this.user.id,revision:row.revision,syncedId:null});if(result==='fallback')throw Error('Could not keep both versions in device history. Download a backup before continuing.')}
+  if(this.row.id!==localId)throw Error('This draft changed while preparing the online backup. Try again.');this.row.owner=this.user.id;this.row.revision=row?.revision??null;this.row.syncedId=null;this.block=null;this.error='';await this.persist();return this.flush()}
+ async loadOnline(){if(!this.user)throw Error('Sign in first.');if(this.running)await this.running.catch(()=>{});const epoch=this.epoch,localId=this.row.id;clearTimeout(this.timer);await this.persist();if(this.localState==='error')throw Error('Download a backup before replacing your unsaved local draft.');const row=await this.remote.read(this.user.id);if(epoch!==this.epoch)throw Error('Account changed.');if(!row)throw Error('No online draft exists yet.');const document=await this.remote.resolve(row.document);if(epoch!==this.epoch)throw Error('Account changed.');if(this.row.id!==localId)throw Error('This draft changed while the online version was loading. Try again.');this.seq=Math.max(Date.now(),this.seq+1);this.row={id:crypto.randomUUID(),time:this.seq,document,owner:this.user.id,revision:row.revision,syncedId:null};this.row.syncedId=this.row.id;this.block=null;this.error='';await this.persist();this.cloudState='saved';this.notify();return structuredClone(document)}
+ async checkForRemoteUpdate(){
+  if(!this.user||this.block||this.running||!this.online()||this.row.id!==this.row.syncedId)return null;
+  const epoch=this.epoch,localId=this.row.id,revision=this.row.revision;
+  const remote=await this.remote.read(this.user.id);
+  if(epoch!==this.epoch||this.row.id!==localId||!remote||remote.revision===revision)return null;
+  return this.loadOnline();
+ }
  async restore(id){const rows=await this.store.list();const found=rows.find(row=>row.id===id);if(!found)throw Error('This recovery version is no longer available.');this.edit(found.document);return structuredClone(found.document)}
  retry(){this.persist();return this.reconnect()}
  dispose(){clearTimeout(this.timer);this.epoch++}

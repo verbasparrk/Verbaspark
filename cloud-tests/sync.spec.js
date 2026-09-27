@@ -68,7 +68,7 @@ test('dashboard tracks publication, sharing and unpublished edits on desktop and
  const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
  const open=async()=>{await page.locator('#page-menu-toggle').click();await page.locator('#dashboard').click()};
  await expect(page.locator('#page-state')).toHaveText('Private draft');
- await page.locator('#page-state').click();await expect(page.locator('#publication-status')).toHaveText('Not published');await expect(page.locator('#dashboard-sharing')).toBeHidden();await expect(page.locator('#dashboard-sync-detail')).toContainText('alice@example.com');await expect(page.locator('#dashboard-load')).toBeVisible();await page.locator('#dashboard-edit').click();
+ await page.locator('#page-state').click();await expect(page.locator('#publication-status')).toHaveText('Not published');await expect(page.locator('#dashboard-sharing')).toBeHidden();await expect(page.locator('#dashboard-sync-detail')).toContainText('alice@example.com');await expect(page.locator('#dashboard-resolve')).toBeHidden();await page.locator('#dashboard-edit').click();
  await page.locator('#page-menu-toggle').click();await page.locator('#account').click();await page.locator('#publish-slug').fill('alice');await page.locator('#cloud-publish').click();await page.locator('#review-continue').click();await expect.poll(()=>server.published?.slug).toBe('alice');await page.locator('.account-close').click();
  await expect(page.locator('#page-state')).toHaveText('Live');
  await open();await expect(page.locator('#publication-status')).toHaveText('Published · up to date');await expect(page.locator('#dashboard-open')).toHaveAttribute('href',/\/p\/alice$/);
@@ -80,12 +80,11 @@ test('dashboard tracks publication, sharing and unpublished edits on desktop and
  await page.locator('#dashboard-account').click();await page.locator('#cloud-unpublish').click();await expect(page.locator('.account-dialog [role=status]')).toContainText('unpublished');await page.locator('.account-close').click();
  await page.setViewportSize({width:1280,height:800});await expect(page.locator('#page-state')).toHaveText('Private draft');await open();await expect(page.locator('#publication-status')).toHaveText('Not published');await expect(page.locator('#dashboard-sharing')).toBeHidden();
 });
-test('dashboard loads the online draft after another device changes it',async({page})=>{
+test('dashboard refreshes a newer online draft without asking the user to choose',async({page})=>{
  const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
  const remote=structuredClone(server.draft.document);remote.name='Updated on another device';server.overwrite(remote);
  await page.locator('#page-menu-toggle').click();await page.locator('#dashboard').click();
- await expect(page.locator('#dashboard-load')).toBeVisible();await page.locator('#dashboard-load').click();
- await expect(page.locator('.page-dashboard')).toHaveCount(0);
+ await expect(page.locator('#dashboard-resolve')).toBeHidden();await page.locator('#dashboard-refresh').click();
  await expect(page.locator('.page-nav strong')).toContainText('Updated on another device');
  await expect(page.locator('#save-status')).toContainText('Saved online');
 });
@@ -182,6 +181,13 @@ test('a returning owner opens their online draft directly on a new device',async
  await expect(page.locator('#save-status')).toContainText('Saved online');
  expect(server.saves).toBe(0);
 });
+test('reopening a fully saved page picks up a newer device copy without a conflict dialog',async({page})=>{
+ const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');
+ const remote=structuredClone(server.draft.document);remote.name='Newer device copy';server.overwrite(remote);const saves=server.saves;
+ await page.reload();await expect(page.locator('.page-nav strong')).toContainText('Newer device copy');
+ await expect(page.locator('#save-status')).toContainText('Saved online');await expect(page.locator('.recovery-dialog')).toHaveCount(0);
+ expect(server.saves).toBe(saves);
+});
 
 test('a signed-in first-time owner completes setup before any sample draft syncs',async({page})=>{
  const server=await mockCloud(page,{welcome:true});await page.goto('/editor/');
@@ -204,8 +210,8 @@ test('real client autosaves, retries offline edits and keeps publication separat
 });
 test('a second-device edit pauses autosave until the user resolves the conflict',async({page})=>{
  const server=await mockCloud(page);await page.goto('/editor/');await expect(page.locator('#save-status')).toContainText('Saved online');const remote=structuredClone(server.draft.document);remote.name='Other device';server.overwrite(remote);const saved=server.saves;
- await page.locator('#card-title').fill('My local version');await page.locator('#card-title').press('Tab');await expect(page.locator('#save-status')).toContainText('Choose draft');expect(server.saves).toBe(saved);expect(server.draft.document.name).toBe('Other device');
- await page.locator('#save-status').click();await page.locator('#choose-local').click();await expect(page.locator('#recovery-message')).toContainText('now saved online');expect(server.draft.document.cards.find(c=>c.id==='project').title).toBe('My local version');
+ await page.locator('#card-title').fill('My local version');await page.locator('#card-title').press('Tab');await expect(page.locator('#save-status')).toContainText('Choose version');expect(server.saves).toBe(saved);expect(server.draft.document.name).toBe('Other device');
+ await page.locator('#save-status').click();await expect(page.locator('.draft-choice')).toHaveCount(2);await expect(page.locator('#online-draft-name')).toHaveText('Other device');await page.locator('#choose-local').click();await expect(page.locator('#recovery-message')).toContainText('now saved online');expect(server.draft.document.cards.find(c=>c.id==='project').title).toBe('My local version');
 });
 
 test('attachments upload privately, load signed URLs and embed in HTML exports',async({page})=>{
@@ -213,7 +219,7 @@ test('attachments upload privately, load signed URLs and embed in HTML exports',
  await page.locator('[data-tab="blocks"]').click();await page.locator('[data-add="document"]').click();await page.locator('#file-upload').setInputFiles({name:'cv.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\nMock attachment\n%%EOF')});
  await expect.poll(()=>server.draft?.document.cards.find(c=>c.type==='document')?.file?.path).toMatch(/^aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\/[a-f0-9]{64}\.pdf$/);
  const file=server.draft.document.cards.find(c=>c.type==='document').file;expect(file.src).toBeUndefined();expect(server.files.size).toBe(1);expect(server.published).toBeNull();
- await page.locator('#page-menu-toggle').click();await page.locator('#account').click();await page.locator('#cloud-load').click();await expect(page.locator('.account-dialog [role=status]')).toContainText('Online draft loaded');await page.locator('.account-close').click();
+ await page.reload();await expect(page.locator('#save-status')).toContainText('Saved online');
  await expect(page.locator('.document [data-file-download]')).toHaveAttribute('href',/\/storage\/v1\/object\/sign\/page-files\//);
  await page.locator('#page-menu-toggle').click();const exported=page.waitForEvent('download');await page.locator('#export').click();const html=await fs.readFile(await (await exported).path(),'utf8');expect(html).toContain('data:application/pdf;base64,');expect(html).not.toContain('token=mock');
 });

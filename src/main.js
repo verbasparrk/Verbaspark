@@ -121,6 +121,7 @@ const addLink=()=>openLinks(card=>change(()=>{const added=newBlock(card.type,car
 const formBlock=document.querySelector('[data-add="contact-form"]');if(formBlock)formBlock.onclick=()=>{selected=null;tab='design';render();document.querySelector('.mobile-sheet .sheet-done')?.click();editContactForm()};
 const linkBlock=document.querySelector('[data-add="link"]');if(linkBlock)linkBlock.onclick=addLink;
 const evaluationsBlock=document.querySelector('[data-add="evaluations"]');if(evaluationsBlock)evaluationsBlock.onclick=()=>document.querySelector('#evaluations-upload')?.click();
+const catalogSliderBlock=document.querySelector('[data-add="catalog-collection"]');if(catalogSliderBlock)catalogSliderBlock.onclick=()=>change(()=>{const card=newBlock('catalog',{title:'My catalogs',catalogMode:'collection'});selected=card.id;tab='edit';state.cards.push(card)});
 document.querySelector('#evaluations-upload')?.addEventListener('change',event=>{uploadEvaluationPDFs(event.target.files,null,document.querySelector('#evaluations-status'));event.target.value=''});
 document.querySelector('#section-pdf-upload')?.addEventListener('change',event=>{uploadEvaluationPDFs(event.target.files,selected,document.querySelector('#section-pdf-status'));event.target.value=''});
 document.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>change(()=>state.cards.find(c=>c.id===selected).size=b.dataset.size));

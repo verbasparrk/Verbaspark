@@ -21,8 +21,12 @@ export function reviewPage(state){
   if(['link','project','video','contact'].includes(card.type)||card.url){if(!validDestination(card.url))add('error','Add a valid website URL or email address.',card,'card-url');else if(/https?:\/\/(?:www\.)?example\.com(?:[/?#]|$)/i.test(card.url)||/@example\.com(?:\?|$)/i.test(card.url))add('warning','This destination is an example. Replace it before sharing.',card,'card-url')}
   if(card.type==='photo'&&!imageSource(card.image))add('error',card.imagePath?'Photo access is unavailable. Load your online draft to refresh it.':'Add a photo or hide this block.',card,'photo-upload');
   if(card.type==='gallery'){if(!card.images?.length)add('error','Add photos or hide this empty gallery.',card,'gallery-upload');else if(card.images.some(p=>!imageSource(p.image)))add('error','Some gallery photos are unavailable. Replace them or refresh your online draft.',card,'gallery-upload')}
-  if(['document','catalog','audio'].includes(card.type)&&!fileSource(card.file?.src))add('error',card.file?.path?'File access is unavailable. Load your online draft to refresh it.':'Upload a file or add a direct file link.',card,'file-upload');
-  if(card.type==='catalog'&&card.catalogMode!=='slider'&&!imageSource(card.image))add('warning','Add a cover image to help your catalog stand out.',card,'photo-upload');
+  if(card.type==='catalog'&&card.catalogMode==='collection'){
+   const files=[card.file,...(card.catalogs||[])].filter(Boolean);
+   if(!files.length)add('error','Add at least one PDF catalog.',card,'catalog-files-upload');
+   else if(files.some(file=>file.mime!=='application/pdf'||!fileSource(file.src)))add('error','One or more PDF catalogs are unavailable. Reload your online draft or replace the file.',card,'catalog-files-upload');
+  }else if(['document','catalog','audio'].includes(card.type)&&!fileSource(card.file?.src))add('error',card.file?.path?'File access is unavailable. Load your online draft to refresh it.':'Upload a file or add a direct file link.',card,'file-upload');
+  if(card.type==='catalog'&&(!card.catalogMode||card.catalogMode==='cover')&&!imageSource(card.image))add('warning','Add a cover image to help your catalog stand out.',card,'photo-upload');
   if(card.type==='location'){const location=locationURLs(card);if(!location)add('error','Add an address or a map location.',card,'location-address');else if(card.mapMode!=='link'&&!location.embed)add('warning','Only navigation is available. Add a map embed, or choose navigation only.',card,'map-embed')}
  }
  return {issues,errors:issues.filter(i=>i.severity==='error').length,warnings:issues.filter(i=>i.severity==='warning').length,visible:cards.length,hidden:state.cards.length-cards.length};

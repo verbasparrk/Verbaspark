@@ -39,6 +39,21 @@ export function mountPdfCatalogs(){
     if(!pdf.numPages)throw Error('Empty PDF');show();
    }catch{if(root.isConnected)status.textContent='Preview unavailable. Open or download the PDF below.'}
   };
-  if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{if(entries[0]?.isIntersecting){observer.disconnect();load()}},{rootMargin:'300px'});observer.observe(root)}else load();
+ if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{if(entries[0]?.isIntersecting){observer.disconnect();load()}},{rootMargin:'300px'});observer.observe(root)}else load();
+ }
+ for(const poster of document.querySelectorAll('[data-catalog-thumb]:not([data-mounted])')){
+  poster.dataset.mounted='true';
+  const load=async()=>{let task;try{
+   const source=poster.closest('.catalog-slide')?.querySelector('[data-file-download]')?.href;
+   if(!source)return;
+   task=pdfjs.getDocument(source.startsWith('data:')?{data:new Uint8Array(await(await fetch(source)).arrayBuffer())}:{url:source});
+   const pdf=await task.promise,page=await pdf.getPage(1);if(!poster.isConnected)return;
+   const natural=page.getViewport({scale:1}),ratio=Math.min(devicePixelRatio||1,2);
+   const scale=Math.min(poster.clientWidth*ratio/natural.width,poster.clientHeight*ratio/natural.height,4096/Math.max(natural.width,natural.height));
+   const viewport=page.getViewport({scale}),canvas=poster.querySelector('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
+   await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+   if(!poster.isConnected)return;canvas.hidden=false;poster.classList.add('preview-ready');
+  }catch{}finally{await task?.destroy()}};
+  if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{if(entries[0]?.isIntersecting){observer.disconnect();load()}},{rootMargin:'200px'});observer.observe(poster)}else load();
  }
 }

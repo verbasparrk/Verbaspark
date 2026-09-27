@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {videoEmbed,locationURLs,mediaHTML,fileFromURL} from '../src/media.js';
-import {cleanFile,fileSource,prepareFile,FILE_LIMIT,PAGE_FILE_LIMIT} from '../src/files.js';
+import {cleanFile,fileSource,prepareFile,pageFileBytes,FILE_LIMIT,PAGE_FILE_LIMIT} from '../src/files.js';
 import {cleanPage} from '../src/page-data.js';
 import {mapEmbedSource,mapEmbedCoordinates,addressEmbed} from '../src/maps.js';
 test('map sources restrict embeds and encode address-based maps',()=>{
@@ -27,6 +27,12 @@ test('media URLs accept only supported providers and safe file data',()=>{
 test('new blocks and attachments survive document sanitization',()=>{
  const page=cleanPage({cards:[{type:'document',title:'PDF',file:{name:'cv.pdf',size:10,mime:'application/pdf',src:'data:application/pdf;base64,JVBERi0='}},{type:'location',address:'Ljubljana',latitude:46,longitude:14},{type:'audio'},{type:'catalog'}]});
  assert.equal(page.cards[0].file.name,'cv.pdf');assert.equal(page.cards[1].latitude,46);assert.equal(page.cards[2].type,'audio');assert.equal(page.cards[3].type,'catalog');
+});
+test('catalog collections retain safe PDF files and count every upload',()=>{
+ const source='data:application/pdf;base64,JVBERi0=';
+ const page=cleanPage({cards:[{type:'catalog',catalogMode:'collection',file:{name:'First.pdf',mime:'application/pdf',size:100,src:source},catalogs:[{name:'Second.pdf',mime:'application/pdf',size:200,src:source},{name:'unsafe.html',mime:'text/html',size:500,src:'https://example.com/unsafe.html'}]}]});
+ assert.equal(page.cards[0].catalogMode,'collection');assert.deepEqual(page.cards[0].catalogs.map(file=>file.name),['Second.pdf']);assert.equal(pageFileBytes(page),300);
+ assert.match(mediaHTML(page.cards[0],value=>value,false),/catalog-slide/);
 });
 test('file and page upload limits reject before reading data',async()=>{
  await assert.rejects(prepareFile({name:'large.pdf',size:FILE_LIMIT+1},{cards:[]}),/under 20 MB/);

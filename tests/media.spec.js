@@ -25,6 +25,20 @@ test('catalog PDF pages can be browsed as a slider and retain the full PDF',asyn
  await catalog.focus();await page.keyboard.press('ArrowLeft');await expect(catalog.locator('.pdf-catalog-position')).toHaveText('1 / 2');
  const downloaded=page.waitForEvent('download');await page.locator('.catalog [data-file-download]').click();expect(await fs.readFile(await (await downloaded).path())).toEqual(twoPagePdf());
 });
+test('several PDF catalogs form one swipeable block and each keeps its own download',async({page})=>{
+ const first={name:'summer.pdf',mimeType:'application/pdf',buffer:twoPagePdf()},second={name:'winter.pdf',mimeType:'application/pdf',buffer:twoPagePdf()};
+ await page.goto('/editor/');await add(page,'catalog-collection');await expect(page.locator('#catalog-mode')).toHaveValue('collection');
+ await page.locator('#catalog-files-upload').setInputFiles([first,second]);await expect(page.locator('.catalog-slide')).toHaveCount(2);
+ await expect(page.locator('.catalog-file-row')).toHaveCount(2);await page.locator('[data-catalog-move="0"][data-direction="1"]').click();
+ await expect(page.locator('.catalog-slide').first()).toContainText('winter.pdf');await page.reload();await page.locator('.card.catalog').click();
+ await expect(page.locator('#catalog-mode')).toHaveValue('collection');await expect(page.locator('.catalog-file-row')).toHaveCount(2);
+ await page.locator('#preview').click();const rail=page.locator('.catalog .catalog-items');await rail.scrollIntoViewIfNeeded();await expect(page.locator('.catalog-slide').first().locator('canvas')).toBeVisible();await page.screenshot({path:'test-results/catalog-slider-desktop.png'});
+ await expect(page.locator('.catalog .gallery-position')).toHaveText('1 / 2');await page.locator('.catalog [data-gallery-step="1"]').click();await expect(page.locator('.catalog .gallery-position')).toHaveText('2 / 2');
+ await page.locator('.catalog-slide').nth(1).locator('[data-media="pdf"]').click();await expect(page.locator('.document-dialog')).toBeVisible();await expect(page.locator('.document-dialog>a')).toHaveAttribute('download','summer.pdf');await page.keyboard.press('Escape');
+ const downloaded=page.waitForEvent('download');await page.locator('.catalog-slide').nth(1).locator('[data-file-download]').click();expect(await fs.readFile(await (await downloaded).path())).toEqual(twoPagePdf());
+ await page.setViewportSize({width:390,height:844});await expect(page.locator('.catalog .catalog-items')).toBeVisible();await page.locator('.catalog .catalog-items').scrollIntoViewIfNeeded();await expect(page.locator('.catalog-slide').first().locator('canvas')).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'test-results/catalog-slider-mobile.png'});await page.setViewportSize({width:1280,height:800});
+ await page.locator('#preview').click();await page.locator('#page-menu-toggle').click();const exported=page.waitForEvent('download');await page.locator('#export').click();const html=await fs.readFile(await (await exported).path(),'utf8');await page.setContent(html);await expect(page.locator('.catalog-slide')).toHaveCount(2);await expect(page.locator('.catalog-poster canvas')).toHaveCount(0);
+});
 test('video and map load only on request; audio remains controllable on phones',async({page})=>{
  await page.route('https://www.youtube-nocookie.com/**',r=>r.fulfill({body:'<html>Video player</html>',contentType:'text/html'}));await page.route('https://www.openstreetmap.org/**',r=>r.fulfill({body:'<html>Map</html>',contentType:'text/html'}));
  await page.route('https://tiles.openfreemap.org/styles/**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({version:8,sources:{},layers:[{id:'background',type:'background',paint:{'background-color':'#222b38'}}]})}));

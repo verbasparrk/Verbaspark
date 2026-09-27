@@ -1,7 +1,7 @@
 export const FILE_LIMIT=20*1024*1024,PAGE_FILE_LIMIT=50*1024*1024;
 export const fileTypes={pdf:'application/pdf',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',txt:'text/plain',mp3:'audio/mpeg',wav:'audio/wav',ogg:'audio/ogg',m4a:'audio/mp4'};
 export const bytesLabel=n=>n>=1048576?`${(n/1048576).toFixed(1)} MB`:`${Math.ceil(n/1024)} KB`;
-export const pageFileBytes=state=>state.cards.reduce((total,c)=>total+(Number(c.file?.size)||0),0);
+export const pageFileBytes=state=>state.cards.reduce((total,c)=>total+(Number(c.file?.size)||0)+(c.type==='catalog'&&Array.isArray(c.catalogs)?c.catalogs.reduce((sum,file)=>sum+(Number(file?.size)||0),0):0),0);
 export function fileSource(value){
  if(typeof value!=='string')return '';
  if(/^https?:\/\//i.test(value)){try{const url=new URL(value);const secure=url.protocol==='https:'||['127.0.0.1','localhost','[::1]'].includes(url.hostname);return secure&&!url.username&&!url.password?url.href:''}catch{return ''}}

@@ -12,7 +12,7 @@ export function bindGallery(state,selected,change){const card=state.cards.find(c
 }
 // Self-contained so exported HTML can use the same keyboard-accessible viewer.
 export function galleryRuntime(){
- if(document.querySelector('[data-pdf-catalog]:not([data-mounted])'))import('./pdf-catalog.js').then(({mountPdfCatalogs})=>mountPdfCatalogs());
+ if(document.querySelector('[data-pdf-catalog]:not([data-mounted]),[data-catalog-thumb]:not([data-mounted])'))import('./pdf-catalog.js').then(({mountPdfCatalogs})=>mountPdfCatalogs());
  const position=rail=>{const items=[...rail.querySelectorAll('.gallery-item')],max=Math.max(0,rail.scrollWidth-rail.clientWidth),start=rail.getBoundingClientRect().left;const stops=items.map(item=>Math.min(max,item.getBoundingClientRect().left-start+rail.scrollLeft));let index=0;stops.forEach((stop,i)=>{if(Math.abs(stop-rail.scrollLeft)<Math.abs(stops[index]-rail.scrollLeft))index=i});return {items,stops,index,max}};
  const update=rail=>{const nav=rail.nextElementSibling;if(!nav?.classList.contains('gallery-navigation'))return;const {items,index,max}=position(rail);nav.querySelector('.gallery-position').textContent=(index+1)+' / '+items.length;nav.querySelector('[data-gallery-step="-1"]').disabled=rail.scrollLeft<=1;nav.querySelector('[data-gallery-step="1"]').disabled=rail.scrollLeft>=max-1};
  const moveRail=(rail,step)=>{const {stops,index}=position(rail);rail.scrollTo({left:stops[Math.max(0,Math.min(stops.length-1,index+step))]||0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})};

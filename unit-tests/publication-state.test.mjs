@@ -15,3 +15,11 @@ test('uploaded and signed media compare with stored object paths',async()=>{
  const stored={name:'Jane',cards:[{type:'photo',imagePath:'owner/'+hash+'.webp',image:'https://example.com/signed?token=expires'}]};
  assert.equal(await fingerprint(local,'owner'),await fingerprint(stored,'owner'));
 });
+test('catalog collection changes are included in publication comparison',async()=>{
+ const owner='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',pdf='data:application/pdf;base64,JVBERi0=',bytes=await(await fetch(pdf)).arrayBuffer();
+ const hash=Buffer.from(await crypto.subtle.digest('SHA-256',bytes)).toString('hex');
+ const local={name:'Jane',cards:[{type:'catalog',title:'Catalogs',catalogMode:'collection',file:{name:'first.pdf',mime:'application/pdf',src:pdf},catalogs:[{name:'second.pdf',mime:'application/pdf',src:pdf}]}]};
+ const stored=structuredClone(local);for(const file of [stored.cards[0].file,...stored.cards[0].catalogs]){file.path=owner+'/'+hash+'.pdf';file.src='https://example.com/temporary-signature'}
+ assert.equal(await fingerprint(local,owner),await fingerprint(stored,owner));
+ stored.cards[0].catalogs[0].name='updated.pdf';assert.notEqual(await fingerprint(local,owner),await fingerprint(stored,owner));
+});

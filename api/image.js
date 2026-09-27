@@ -9,7 +9,7 @@ export default async function handler(req,res){
   if(typeof path!=='string'||!(kind==='file'?/^[a-f0-9-]{36}\/[a-f0-9]{64}\.[a-z0-9]+$/:/^[a-f0-9-]{36}\/[a-f0-9]{64}\.webp$/).test(path))return res.status(404).end();
   const db=publicReader(),page=await published(db,slug);
   if(kind==='file'){
-   const file=page.document.cards?.filter(card=>!card.hidden).find(card=>card.file?.path===path)?.file;
+   const file=page.document.cards?.filter(card=>!card.hidden).flatMap(card=>[card.file,...(card.type==='catalog'&&card.catalogMode==='collection'&&Array.isArray(card.catalogs)?card.catalogs:[])]).find(file=>file?.path===path);
    const mime=fileTypes[path.split('.').pop()];
    if(!file||!path.startsWith(page.owner_id+'/')||!mime||file.mime!==mime)return res.status(404).end();
    const signed=await db.storage.from('page-files').createSignedUrl(path,300);

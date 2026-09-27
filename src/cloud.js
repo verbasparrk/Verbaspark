@@ -10,7 +10,7 @@ const cache=new Map();
 export async function saveDraft(document,{userId,revision,requestId}){
  if(!cloud)throw Error('Connect Supabase first.');const {user}=check(await cloud.auth.getUser());if(!user||user.id!==userId)throw Error('Account changed. Sign in again before saving.');
  const copy=structuredClone(document);
- for(const card of copy.cards){const file=card.file;if(!file)continue;
+ for(const file of copy.cards.flatMap(card=>[card.file,...(card.type==='catalog'?card.catalogs||[]:[])].filter(Boolean))){
   if(file.src?.startsWith('data:')){
    if(!fileSource(file.src))throw Error('Unsupported file data. Replace the attachment.');
    const blob=await(await fetch(file.src)).blob();const ext=Object.keys(fileTypes).find(key=>fileTypes[key]===blob.type);if(!ext)throw Error('Unsupported file type.');
@@ -28,7 +28,7 @@ export async function saveDraft(document,{userId,revision,requestId}){
  return check(await cloud.rpc('save_draft',{draft_document:copy,expected_revision:revision,request_id:requestId,expected_owner:userId}));
 }
 export async function resolveImages(document){
- const items=[...(document.cards||[]).flatMap(c=>[c,...(c.images||[])]),...(document.profile?.seo?[document.profile.seo]:[]),...(document.showcaseCover?[document.showcaseCover]:[])];
+ const items=[...(document.cards||[]).flatMap(c=>[c,...(c.images||[]),...(c.type==='catalog'?c.catalogs||[]:[]).map(file=>({file}))]),...(document.profile?.seo?[document.profile.seo]:[]),...(document.showcaseCover?[document.showcaseCover]:[])];
  const images=new Map(),files=new Map();
  await Promise.all(items.flatMap(item=>{
   const jobs=[];
@@ -39,14 +39,14 @@ export async function resolveImages(document){
  return document;
 }
 export async function resolvePublicImages(document,slug){
- const items=[...(document.cards||[]).flatMap(c=>[c,...(c.images||[])]),...(document.showcaseCover?[document.showcaseCover]:[])];
+ const items=[...(document.cards||[]).flatMap(c=>[c,...(c.images||[]),...(c.type==='catalog'?c.catalogs||[]:[]).map(file=>({file}))]),...(document.showcaseCover?[document.showcaseCover]:[])];
  const endpoint=(kind,path='')=>new URL('/api/'+(kind==='file'?'image':kind)+'?'+(kind==='file'?'kind=file&':'')+'slug='+encodeURIComponent(slug)+(path?'&path='+encodeURIComponent(path):''),globalThis.location.origin).href;
  for(const item of items)if(item.imagePath)item.image=endpoint('image',item.imagePath);
  if(document.profile?.seo?.imagePath)document.profile.seo.image=endpoint('cover');
  for(const item of items)if(item.file?.path)item.file.src=endpoint('file',item.file.path);
  return document;
 }
-export async function exportImages(document){const copy=structuredClone(document);for(const card of [...copy.cards.flatMap(c=>[c,...(c.images||[])]),...(copy.profile?.seo?[copy.profile.seo]:[]),...(copy.showcaseCover?[copy.showcaseCover]:[])]){
+export async function exportImages(document){const copy=structuredClone(document);for(const card of [...copy.cards.flatMap(c=>[c,...(c.images||[]),...(c.type==='catalog'?c.catalogs||[]:[]).map(file=>({file}))]),...(copy.profile?.seo?[copy.profile.seo]:[]),...(copy.showcaseCover?[copy.showcaseCover]:[])]){
  for(const [object,pathKey,sourceKey] of [[card,'imagePath','image'],[card.file,'path','src']]){if(!object?.[pathKey])continue;if(!object[sourceKey])throw Error('Reload your online draft to refresh its photos and files before exporting.');const response=await fetch(object[sourceKey]);if(!response.ok)throw Error('Reload your online draft to refresh its photos and files before exporting.');const blob=await response.blob();object[sourceKey]=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)});delete object[pathKey]}
  }return copy;}
 export async function publicPage(slug){if(!cloud)throw Error('Publishing is not connected yet.');const row=check(await cloud.from('published_pages').select('*').eq('slug',slug).maybeSingle());if(!row||row.moderated_at)throw Error('This page is not published.');return resolvePublicImages(row.document,slug)}

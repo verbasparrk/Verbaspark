@@ -9,7 +9,7 @@ export function referencedFiles(document){
  if(!document||typeof document!=='object')return {images,files};
  for(const card of [...(Array.isArray(document.cards)?document.cards:[]),document.profile?.seo,document.showcaseCover]){
   if(!card)continue;
-  for(const item of [card,...(Array.isArray(card.images)?card.images:[])]){
+  for(const item of [card,...(Array.isArray(card.images)?card.images:[]),...(card.type==='catalog'&&Array.isArray(card.catalogs)?card.catalogs.map(file=>({file})):[])]){
    if(typeof item?.imagePath==='string')images.add(item.imagePath);
    if(typeof item?.file?.path==='string')files.add(item.file.path);
   }

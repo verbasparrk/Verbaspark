@@ -12,13 +12,13 @@ export async function publicationFingerprint(value,owner){
    if(image.image?.startsWith('data:image/'))image.imagePath=owner+'/'+await hash(image.image)+'.webp';
    if(image.imagePath)delete image.image;
   }
-  if(card.file){
-   if(card.file.src?.startsWith('data:')){
-    const blob=await (await fetch(card.file.src)).blob();
+  for(const file of [card.file,...(card.type==='catalog'?card.catalogs||[]:[])].filter(Boolean)){
+   if(file.src?.startsWith('data:')){
+    const blob=await (await fetch(file.src)).blob();
     const ext=Object.keys(fileTypes).find(key=>fileTypes[key]===blob.type);
-    card.file.path=owner+'/'+await hash(card.file.src)+'.'+ext;
+    file.path=owner+'/'+await hash(file.src)+'.'+ext;
    }
-   if(card.file.path)delete card.file.src;
+   if(file.path)delete file.src;
   }
  }
  if(page.profile.seo.image?.startsWith('data:image/'))page.profile.seo.imagePath=owner+'/'+await hash(page.profile.seo.image)+'.webp';if(page.profile.seo.imagePath)delete page.profile.seo.image;

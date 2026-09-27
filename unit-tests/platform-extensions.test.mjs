@@ -7,8 +7,8 @@ import {validHostname,dnsInstructions,domainClaimVerified} from '../server/domai
 
 const alice='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 test('storage cleanup protects online draft and published attachments, and keeps recent uploads',()=>{
- const draft={cards:[{imagePath:alice+'/draft.webp',images:[{imagePath:alice+'/gallery.webp'}],file:{path:alice+'/catalog.pdf'}}],profile:{seo:{imagePath:alice+'/cover.webp'}}};
- const refs=referencedFiles(draft);assert.equal(refs.images.size,3);assert.ok(refs.files.has(alice+'/catalog.pdf'));
+ const draft={cards:[{type:'catalog',imagePath:alice+'/draft.webp',images:[{imagePath:alice+'/gallery.webp'}],file:{path:alice+'/catalog.pdf'},catalogs:[{path:alice+'/catalog-two.pdf'}]}],profile:{seo:{imagePath:alice+'/cover.webp'}}};
+ const refs=referencedFiles(draft);assert.equal(refs.images.size,3);assert.ok(refs.files.has(alice+'/catalog.pdf'));assert.ok(refs.files.has(alice+'/catalog-two.pdf'));
  const files=[{bucket:'page-images',path:alice+'/draft.webp',size:10,createdAt:'2020-01-01'},
   {bucket:'page-files',path:alice+'/catalog.pdf',size:20,createdAt:'2020-01-01'},
   {bucket:'page-images',path:alice+'/orphan.webp',size:30,createdAt:'2020-01-01'},

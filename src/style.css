@@ -276,6 +276,8 @@ body:has(.welcome-dialog[open]) #app{visibility:hidden}
 .cooperative-map{position:relative;width:100%;height:100%;min-height:160px;background:color-mix(in srgb,var(--accent) 5%,var(--page-surface));color:var(--page-text)}
 .map-loading,.map-unavailable{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;color:var(--page-text);background:var(--page-surface)}
 .map-unavailable{color:var(--accent);text-decoration:underline}
+.cooperative-map>.map-fallback-link,.personal-page .map-touch-fallback{position:absolute;right:12px;bottom:12px;z-index:2;display:inline-flex;align-items:center;justify-content:center;gap:6px;max-width:calc(100% - 24px);min-height:40px;padding:8px 12px;border:1px solid var(--page-border);border-radius:var(--button-radius);background:var(--page-surface);color:var(--accent);font-size:12px;font-weight:700;text-decoration:none;box-shadow:0 4px 16px #0003}
+.cooperative-map>.map-fallback-link:hover,.personal-page .map-touch-fallback:hover{border-color:var(--accent)}
 .cooperative-map .maplibregl-ctrl-group{overflow:hidden;border:1px solid var(--page-border);border-radius:var(--button-radius);background:var(--page-surface);box-shadow:0 4px 18px #0002}
 .cooperative-map .maplibregl-ctrl-group button{background-color:var(--page-surface);color:var(--page-text)}
 .cooperative-map .maplibregl-ctrl-group button:hover{background-color:color-mix(in srgb,var(--accent) 10%,var(--page-surface))}
@@ -285,10 +287,10 @@ body:has(.welcome-dialog[open]) #app{visibility:hidden}
 .map-pin{width:30px;height:39px;filter:drop-shadow(0 5px 6px #0005)}
 .map-pin::before{content:"";position:absolute;top:1px;left:3px;width:24px;height:24px;border:2px solid var(--page-surface);border-radius:50% 50% 50% 2px;background:var(--pin-color);transform:rotate(-45deg)}
 .map-pin::after{content:"";position:absolute;top:10px;left:12px;width:7px;height:7px;border-radius:50%;background:var(--page-surface)}
-.map-touch-fallback{display:none}
+.personal-page .map-touch-fallback{display:none}
 @media(pointer:coarse){
  .personal-page .map-frame iframe{pointer-events:none}
- .personal-page .map-touch-fallback{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;gap:8px;padding:18px;text-align:center;color:var(--page-text);font-weight:700;background:color-mix(in srgb,var(--page-surface) 86%,transparent);text-decoration:none}
+ .personal-page .map-touch-fallback{display:inline-flex}
  .personal-page .map-touch-fallback .ui-icon{width:18px;height:18px;color:var(--accent)}
  .personal-page .card[draggable] .map-touch-fallback{pointer-events:none}
  .cooperative-map[data-map-status=ready]::after{content:"Move with two fingers";position:absolute;left:10px;bottom:10px;z-index:2;pointer-events:none;padding:6px 10px;border:1px solid var(--page-border);border-radius:var(--button-radius);background:color-mix(in srgb,var(--page-surface) 94%,transparent);color:var(--page-text);font-size:11px;box-shadow:0 2px 8px #0002}

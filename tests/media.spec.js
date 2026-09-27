@@ -78,6 +78,16 @@ test.describe('touch maps',()=>{
   await expect(page.locator('.location .cooperative-map')).toHaveAttribute('data-map-status','ready');expect(await page.locator('.location .cooperative-map').evaluate(el=>getComputedStyle(el,'::after').content)).toContain('two fingers');
   await page.locator('#preview').click();await page.locator('.location').click();await page.locator('#map-embed').fill('<iframe src="https://www.google.com/maps/embed?pb=test-location"></iframe>');await page.locator('#map-embed').press('Tab');await page.locator('#preview').click();
   await expect(page.locator('.location .map-touch-fallback')).toBeVisible();expect(await page.locator('.location iframe').evaluate(el=>getComputedStyle(el).pointerEvents)).toBe('none');
+  const frame=await page.locator('.location .map-frame').boundingBox(),link=await page.locator('.location .map-touch-fallback').boundingBox();expect(link.width*link.height).toBeLessThan(frame.width*frame.height/3);
+ });
+ test('failed interactive renderer keeps the embedded map visible',async({page})=>{
+  await page.route('https://www.openstreetmap.org/export/embed.html**',r=>r.fulfill({contentType:'text/html',body:'<html>Embedded map</html>'}));
+  await page.goto('/editor/');await page.evaluate(()=>{
+   const root=document.createElement('div');root.className='personal-page';root.innerHTML='<div class="media-frame map-frame"><div class="cooperative-map" data-cooperative-map data-map-lat="invalid" data-map-lng="14.5058" data-map-url="https://www.google.com/maps/dir/?api=1&amp;destination=46.0569%2C14.5058" data-map-fallback="https://www.openstreetmap.org/export/embed.html?bbox=14.49%2C46.04%2C14.52%2C46.07&amp;marker=46.0569%2C14.5058" role="region" aria-label="Location map"></div></div>';
+   document.querySelector('#app').append(root);document.dispatchEvent(new Event('verbaspark:mount-maps'));
+  });
+  const map=page.locator('.personal-page .cooperative-map');await expect(map).toHaveAttribute('data-map-status','unavailable');await expect(map.locator('iframe')).toHaveAttribute('src',/openstreetmap\.org\/export\/embed\.html/);await expect(map.locator('.map-fallback-link')).toBeVisible();
+  expect(await map.locator('iframe').evaluate(el=>getComputedStyle(el).pointerEvents)).toBe('none');const frame=await map.boundingBox(),link=await map.locator('.map-fallback-link').boundingBox();expect(link.width*link.height).toBeLessThan(frame.width*frame.height/3);
  });
 });
 

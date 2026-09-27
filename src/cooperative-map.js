@@ -1,4 +1,5 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
+import {mapEmbedSource} from './maps.js';
 
 const activeMaps=new Map();
 let mapLibrary;
@@ -11,13 +12,22 @@ function darkBackground(color){
 }
 
 function fallback(element){
+ const source=mapEmbedSource(element.dataset.mapFallback);
  const link=document.createElement('a');
- link.className='map-unavailable';
+ link.className=source?'map-fallback-link':'map-unavailable';
  link.href=element.dataset.mapUrl;
  link.target='_blank';
  link.rel='noopener noreferrer';
- link.textContent='Map unavailable here. Open navigation ↗';
- element.replaceChildren(link);
+ link.textContent=source?'Open in navigation ↗':'Open map in navigation ↗';
+ if(source){
+  const frame=document.createElement('iframe');
+  frame.src=source;
+  frame.title=element.getAttribute('aria-label')||'Location map';
+  frame.loading='lazy';
+  frame.referrerPolicy='strict-origin-when-cross-origin';
+  frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-popups');
+  element.replaceChildren(frame,link);
+ }else element.replaceChildren(link);
  element.dataset.mapStatus='unavailable';
 }
 
